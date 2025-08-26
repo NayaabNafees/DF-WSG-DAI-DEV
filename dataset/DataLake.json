@@ -29,7 +29,7 @@
 					"type": "Expression"
 				},
 				"folderPath": {
-					"value": "@concat(dataset().DataSetName,'-',dataset().Instance)",
+					"value": "@concat(dataset().DatasetName,'-',dataset().Instance)",
 					"type": "Expression"
 				},
 				"fileSystem": {
