@@ -4,7 +4,11 @@
 		"annotations": [],
 		"type": "AzureBlobFS",
 		"typeProperties": {
-			"url": "https://sawsgdaidev.dfs.core.windows.net/"
+			"url": "https://sawsgdaidev.dfs.core.windows.net/",
+			"credential": {
+				"referenceName": "credential1",
+				"type": "CredentialReference"
+			}
 		}
 	},
 	"type": "Microsoft.DataFactory/factories/linkedservices"
