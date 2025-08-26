@@ -1,0 +1,507 @@
+{
+	"name": "PL_invoice_batch2",
+	"properties": {
+		"activities": [
+			{
+				"name": "Set period",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Period",
+					"value": {
+						"value": "@pipeline().parameters.Period",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set Debug",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "DEBUG",
+					"value": {
+						"value": "@concat('invoicing/invoice_batch?$query=period=','''',pipeline().parameters.Period,'''','and p_year=','''',pipeline().parameters.P_year,'''')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Copy route to DataLake",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set period",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set Debug",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"paginationRules": {
+							"supportRFC5988": "true",
+							"EndCondition:$.has_more": "Const:false",
+							"QueryParameters.$start": "$.next_result"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "Period_Query",
+						"type": "DatasetReference",
+						"parameters": {
+							"Period": {
+								"value": "@pipeline().parameters.Period",
+								"type": "Expression"
+							},
+							"API_Instance": {
+								"value": "invoicing/invoice_batch",
+								"type": "Expression"
+							},
+							"P_year": {
+								"value": "@pipeline().parameters.P_year",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@concat('period-',pipeline().parameters.Period,' Year=',pipeline().parameters.P_year)",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "invoicebatch",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "invoice_batch",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wsgnsw",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Copy to DB",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copy route to DataLake",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"U_ID"
+							]
+						},
+						"sqlWriterUseTableLock": true,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"parallelCopies": 4,
+					"enableSkipIncompatibleRow": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "['$id']"
+								},
+								"sink": {
+									"name": "U_ID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['BatchComplete']"
+								},
+								"sink": {
+									"name": "BatchComplete",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['BatchStamp']"
+								},
+								"sink": {
+									"name": "BatchStamp",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['BatchStatus']"
+								},
+								"sink": {
+									"name": "BatchStatus",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['BillingFrom']"
+								},
+								"sink": {
+									"name": "BillingFrom",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['BillingTo']"
+								},
+								"sink": {
+									"name": "BillingTo",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['CustomerTypes']"
+								},
+								"sink": {
+									"name": "CustomerTypes",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['DateCreated']"
+								},
+								"sink": {
+									"name": "DateCreated",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['DateFrom']"
+								},
+								"sink": {
+									"name": "DateFrom",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['DateInvoiced']"
+								},
+								"sink": {
+									"name": "DateInvoiced",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['DateTo']"
+								},
+								"sink": {
+									"name": "DateTo",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['Description']"
+								},
+								"sink": {
+									"name": "Description",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['EmpID']"
+								},
+								"sink": {
+									"name": "EmpID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Exported']"
+								},
+								"sink": {
+									"name": "Exported",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['ExportedDate']"
+								},
+								"sink": {
+									"name": "ExportedDate",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['ExportedResult']"
+								},
+								"sink": {
+									"name": "ExportedResult",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['ExportedTime']"
+								},
+								"sink": {
+									"name": "ExportedTime",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['id']"
+								},
+								"sink": {
+									"name": "id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Instructions']"
+								},
+								"sink": {
+									"name": "Instructions",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['InvoiceCycles']"
+								},
+								"sink": {
+									"name": "InvoiceCycles",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['jrl_no']"
+								},
+								"sink": {
+									"name": "jrl_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['p_year']"
+								},
+								"sink": {
+									"name": "p_year",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Params']"
+								},
+								"sink": {
+									"name": "Params",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['period']"
+								},
+								"sink": {
+									"name": "period",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Summary']"
+								},
+								"sink": {
+									"name": "Summary",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['TimeCreated']"
+								},
+								"sink": {
+									"name": "TimeCreated",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['TotalInvoiced']"
+								},
+								"sink": {
+									"name": "TotalInvoiced",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['TotalInvoices']"
+								},
+								"sink": {
+									"name": "TotalInvoices",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['update_timestamp']"
+								},
+								"sink": {
+									"name": "update_timestamp",
+									"type": "DateTime"
+								}
+							}
+						],
+						"collectionReference": "$['result']"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@concat('period-',pipeline().parameters.Period,' Year=',pipeline().parameters.P_year)",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "invoicebatch",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "invoice_batch",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wsgnsw",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DBTable",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "invoice_batch_wsgnsw",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"Period": {
+				"type": "string"
+			},
+			"P_year": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"DEBUG": {
+				"type": "String"
+			},
+			"Period": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Invoice"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-02-29T22:48:57Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

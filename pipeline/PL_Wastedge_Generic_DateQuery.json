@@ -1,0 +1,854 @@
+{
+	"name": "PL_Wastedge_Generic_DateQuery",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach API Entity",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "If Refresh Data by Update Timestamp",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.ApiEntities",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Set Api Query Relative Url",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set Api Instance",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varRestRelativeUrl",
+								"value": {
+									"value": "@if(lessOrEquals(pipeline().parameters.RefreshDataDayOffset, 0)\n, concat(variables('varApiInstance'),'?$query=update_timestamp>=','''', variables('varStartDate'), ''' and update_timestamp<=','''', variables('varEndDate'), '''')\n, concat(variables('varApiInstance'),'')\n)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set Api Instance",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varApiInstance",
+								"value": {
+									"value": "@split(item(), '.')[1]",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Switch Instance - Download Wastedge Data",
+							"type": "Switch",
+							"dependsOn": [
+								{
+									"activity": "Set Api Query Relative Url",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set DataLake FileName",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set DataLake Directory",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@toLower(pipeline().parameters.Instance)",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "wflex",
+										"activities": [
+											{
+												"name": "Download Data - WFLEX",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 2,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "RestSource",
+														"httpRequestTimeout": "00:01:40",
+														"requestInterval": "00.00:00:00.010",
+														"requestMethod": "GET",
+														"paginationRules": {
+															"supportRFC5988": "true",
+															"QueryParameters.$start": "$.next_result",
+															"EndCondition:$.has_more": "Const:false"
+														}
+													},
+													"sink": {
+														"type": "JsonSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "JsonWriteSettings"
+														}
+													},
+													"enableStaging": false
+												},
+												"inputs": [
+													{
+														"referenceName": "RestResource_WastedgeAPI_WFLEX",
+														"type": "DatasetReference",
+														"parameters": {
+															"restRelativeUrl": "@variables('varApiInstance')"
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "DataLake_Wastedge",
+														"type": "DatasetReference",
+														"parameters": {
+															"pFileSystem": {
+																"value": "@variables('varDataLake_FileSystem')",
+																"type": "Expression"
+															},
+															"pDirectory": {
+																"value": "@variables('varDataLake_Diretory')",
+																"type": "Expression"
+															},
+															"pFileName": {
+																"value": "@variables('varDataLake_FileName')",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											}
+										]
+									},
+									{
+										"value": "wsgnsw",
+										"activities": [
+											{
+												"name": "Download Data - WSGNSW",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 2,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "RestSource",
+														"httpRequestTimeout": "00:01:40",
+														"requestInterval": "00.00:00:00.010",
+														"requestMethod": "GET",
+														"paginationRules": {
+															"supportRFC5988": "true",
+															"QueryParameters.$start": "$.next_result",
+															"EndCondition:$.has_more": "Const:false"
+														}
+													},
+													"sink": {
+														"type": "JsonSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "JsonWriteSettings"
+														}
+													},
+													"enableStaging": false
+												},
+												"inputs": [
+													{
+														"referenceName": "RestResource_WastedgeAPI_WSGNSW",
+														"type": "DatasetReference",
+														"parameters": {
+															"restRelativeUrl": {
+																"value": "@variables('varApiInstance')",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "DataLake_Wastedge",
+														"type": "DatasetReference",
+														"parameters": {
+															"pFileSystem": {
+																"value": "@variables('varDataLake_FileSystem')",
+																"type": "Expression"
+															},
+															"pDirectory": {
+																"value": "@variables('varDataLake_Diretory')",
+																"type": "Expression"
+															},
+															"pFileName": {
+																"value": "@variables('varDataLake_FileName')",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											}
+										]
+									},
+									{
+										"value": "wsgvic",
+										"activities": [
+											{
+												"name": "Download Data - WSGVIC",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 2,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "RestSource",
+														"httpRequestTimeout": "00:01:40",
+														"requestInterval": "00.00:00:00.010",
+														"requestMethod": "GET",
+														"paginationRules": {
+															"supportRFC5988": "true",
+															"QueryParameters.$start": "$.next_result",
+															"EndCondition:$.has_more": "Const:false"
+														}
+													},
+													"sink": {
+														"type": "JsonSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "JsonWriteSettings"
+														}
+													},
+													"enableStaging": false
+												},
+												"inputs": [
+													{
+														"referenceName": "RestResource_WastedgeAPI_WSGVIC",
+														"type": "DatasetReference",
+														"parameters": {
+															"restRelativeUrl": {
+																"value": "@variables('varRestRelativeUrl')",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "DataLake_Wastedge",
+														"type": "DatasetReference",
+														"parameters": {
+															"pFileSystem": {
+																"value": "@variables('varDataLake_FileSystem')",
+																"type": "Expression"
+															},
+															"pDirectory": {
+																"value": "@variables('varDataLake_Diretory')",
+																"type": "Expression"
+															},
+															"pFileName": {
+																"value": "@variables('varDataLake_FileName')",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											}
+										]
+									}
+								]
+							}
+						},
+						{
+							"name": "Set DataLake FileName",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set API Object Name",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varDataLake_FileName",
+								"value": {
+									"value": "@concat(variables('varApiObjectName'), '-', pipeline().parameters.Instance, '-', variables('varDataLake_FileNameSubfix'))",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set DataLake Directory",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set API Object Name",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varDataLake_Diretory",
+								"value": {
+									"value": "@concat(split(item(), '.')[0], '/', variables('varApiObjectName'), '-', pipeline().parameters.Instance)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Copy Data to Database",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Set CopyDataToDB - Sink TableName",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set Debug - PreCopyScript",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "JsonSource",
+									"additionalColumns": [
+										{
+											"name": "etlRefreshTimestampUTC",
+											"value": {
+												"value": "@utcnow()",
+												"type": "Expression"
+											}
+										}
+									],
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": false,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "JsonReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"preCopyScript": {
+										"value": "@{concat('EXECUTE ', variables('varSqlDbSink_SchemaName'), '.[Generic_CopyData_PreCopyScript] ', ' @paramObjectName=''', variables('varApiInstance'), ''' ', ' , @paramRefreshDataDate=''', variables('varStartDate'), ''' ')}",
+										"type": "Expression"
+									},
+									"writeBehavior": {
+										"value": "@string(json(string(activity('Lookup Configuration File').output)).value[0].sink.writeBehavior)",
+										"type": "Expression"
+									},
+									"sqlWriterUseTableLock": true,
+									"upsertSettings": {
+										"useTempDB": true,
+										"keys": {
+											"value": "@json(string(activity('Lookup Configuration File').output)).value[0].sink.upsertSettings.keys",
+											"type": "Expression"
+										}
+									},
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"parallelCopies": 4,
+								"translator": {
+									"value": "@json(string(activity('Lookup Configuration File').output)).value[0].translator",
+									"type": "Expression"
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "DataLake_Wastedge",
+									"type": "DatasetReference",
+									"parameters": {
+										"pFileSystem": {
+											"value": "@variables('varDataLake_FileSystem')",
+											"type": "Expression"
+										},
+										"pDirectory": {
+											"value": "@variables('varDataLake_Diretory')",
+											"type": "Expression"
+										},
+										"pFileName": {
+											"value": "@variables('varDataLake_FileName')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "AzureSqlTable1",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": {
+											"value": "@variables('varSqlDbSink_TableName')",
+											"type": "Expression"
+										},
+										"SchemaName": {
+											"value": "@variables('varSqlDbSink_SchemaName')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Set CopyDataToDB - Sink TableName",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Lookup Configuration File",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varSqlDbSink_TableName",
+								"value": {
+									"value": "@string(json(string(activity('Lookup Configuration File').output)).value[0].outputs[0].parameters.TableName.value)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Lookup Configuration File",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Switch Instance - Download Wastedge Data",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "JsonSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": false,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "JsonReadSettings"
+									}
+								},
+								"dataset": {
+									"referenceName": "DataLake_Wastedge",
+									"type": "DatasetReference",
+									"parameters": {
+										"pFileSystem": {
+											"value": "@variables('varConfigFile_CopyDataToDb_FileSystem')",
+											"type": "Expression"
+										},
+										"pDirectory": {
+											"value": "@concat(variables('varConfigFile_CopyDataToDb_Directory'), '/', split(variables('varApiInstance'), '/')[0], '')",
+											"type": "Expression"
+										},
+										"pFileName": {
+											"value": "@concat('config-', variables('varApiObjectName'), '-', pipeline().parameters.Instance, '.json')",
+											"type": "Expression"
+										}
+									}
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "Set CopyDataToDB - Sink SchemaName",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Lookup Configuration File",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varSqlDbSink_SchemaName",
+								"value": {
+									"value": "@toLower(pipeline().parameters.Instance)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set Debug - PreCopyScript",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set CopyDataToDB - Sink SchemaName",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "debugMsg",
+								"value": {
+									"value": "@concat('EXECUTE ', variables('varSqlDbSink_SchemaName'), '.[Generic_CopyData_PreCopyScript] ', ' @paramObjectName=''', variables('varApiInstance'), ''' ', ' , @paramRefreshDataDate=''', variables('varStartDate'), ''' ')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set API Object Name",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set Api Instance",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varApiObjectName",
+								"value": {
+									"value": "@split(split(item(), '/')[1], '?')[0]",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If Refresh Data by Update Timestamp",
+				"type": "IfCondition",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@lessOrEquals(pipeline().parameters.RefreshDataDayOffset, 0)",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Set Start Date As Current Date",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varStartDate",
+								"value": {
+									"value": "@formatDateTime(convertTimeZone(pipeline().TriggerTime, 'UTC', pipeline().globalParameters.gparmSystemTimezone), 'yyyy-MM-dd')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set File Name Subfix As Current DateTime",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set Start Date As Current Date",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set End Date As Current Date",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varDataLake_FileNameSubfix",
+								"value": {
+									"value": "@concat(replace(variables('varEndDate'), ':', ''), '')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set End Date As Current Date",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varEndDate",
+								"value": {
+									"value": "@formatDateTime(convertTimeZone(pipeline().TriggerTime, 'UTC', pipeline().globalParameters.gparmSystemTimezone) , 'yyyy-MM-ddTHH:mm:00')",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Set Start Date",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varStartDate",
+								"value": {
+									"value": "@formatDateTime(addDays(convertTimeZone(pipeline().TriggerTime, 'UTC', pipeline().globalParameters.gparmSystemTimezone), pipeline().parameters.RefreshDataDayOffset), 'yyyy-MM-dd')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set File Name Subfix",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set Start Date",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set End Date",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varDataLake_FileNameSubfix",
+								"value": {
+									"value": "@concat(variables('varStartDate'), '_', replace(variables('varEndDate'), ':', ''))",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set End Date",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varEndDate",
+								"value": {
+									"value": "@formatDateTime(convertTimeZone(pipeline().TriggerTime, 'UTC', pipeline().globalParameters.gparmSystemTimezone) , 'yyyy-MM-ddTHH:mm:00')",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"RefreshDataDayOffset": {
+				"type": "int",
+				"defaultValue": 0
+			},
+			"Instance": {
+				"type": "string",
+				"defaultValue": "wsgvic"
+			},
+			"ApiEntities": {
+				"type": "array",
+				"defaultValue": [
+					"customer.customer/customer",
+					"booking.booking/booking",
+					"routetipfee.vehicle/route_tip_fee",
+					"tipfee.vehicle/tip_fee",
+					"servicecustomprice.customer/service_custom_price",
+					"scheduledservice.customer/scheduled_service",
+					"routesummary.vehicle/route_summary",
+					"service.customer/service"
+				]
+			}
+		},
+		"variables": {
+			"varStartDate": {
+				"type": "String"
+			},
+			"varApiInstance": {
+				"type": "String"
+			},
+			"debugMsg": {
+				"type": "String"
+			},
+			"varRestRelativeUrl": {
+				"type": "String"
+			},
+			"varDataLake_FileName": {
+				"type": "String"
+			},
+			"varDataLake_FileSystem": {
+				"type": "String",
+				"defaultValue": "sara-full-refresh"
+			},
+			"varDataLake_Diretory": {
+				"type": "String"
+			},
+			"varDataLake_FileNameSubfix": {
+				"type": "String"
+			},
+			"varSqlDbSink_WriteBehavior": {
+				"type": "String"
+			},
+			"varSqlDbSink_Translator": {
+				"type": "String"
+			},
+			"varSqlDbSink_UpsertSettings": {
+				"type": "String"
+			},
+			"varSqlDbSink_TableName": {
+				"type": "String"
+			},
+			"varSqlDbSink_SchemaName": {
+				"type": "String"
+			},
+			"varConfigFile_CopyDataToDb_FileSystem": {
+				"type": "String",
+				"defaultValue": "adf-configurations"
+			},
+			"varConfigFile_CopyDataToDb_Directory": {
+				"type": "String",
+				"defaultValue": "wastedge-pipeline-copy-data-sink-mappings"
+			},
+			"varEndDate": {
+				"type": "String"
+			},
+			"varApiObjectName": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "SaraHe"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-03-24T23:53:21Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

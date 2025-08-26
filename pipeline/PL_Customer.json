@@ -1,0 +1,1817 @@
+{
+	"name": "PL_Customer",
+	"properties": {
+		"activities": [
+			{
+				"name": "Set StartDate",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "StartDate",
+					"value": {
+						"value": "@formatDateTime(pipeline().parameters.pStartDate,'yyyy-MM-dd')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Debug",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Debug",
+					"value": {
+						"value": "@concat('customer/customer?$query=update_timestamp>=','''',pipeline().parameters.pStartDate,'''','and update_timestamp<=','',pipeline().parameters.pEndDate,'')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Copy Customer Data",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set StartDate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Debug",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set EndDate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"paginationRules": {
+							"supportRFC5988": "true",
+							"EndCondition:$.has_more": "Const:false",
+							"QueryParameters.$start": "$.next_result"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings",
+							"filePattern": "arrayOfObjects"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "RestAPI_Date",
+						"type": "DatasetReference",
+						"parameters": {
+							"pStartDate": {
+								"value": "@pipeline().parameters.pStartDate",
+								"type": "Expression"
+							},
+							"pEndDate": {
+								"value": "@pipeline().parameters.pEndDate",
+								"type": "Expression"
+							},
+							"API_Instance": {
+								"value": "customer/customer",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@pipeline().parameters.pStartDate",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "customer",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "customer",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wsgvic",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Set EndDate",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "EndDate",
+					"value": {
+						"value": "@formatDateTime(adddays(pipeline().parameters.pEndDate,2),'YYYY-MM-dd')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Customer to DB",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copy Customer Data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"modifiedDatetimeStart": "2022-12-21T00:00:00.335Z",
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"id"
+							]
+						},
+						"sqlWriterUseTableLock": true,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"enableSkipIncompatibleRow": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "['$id']"
+								},
+								"sink": {
+									"name": "id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['accounting_acc_no']"
+								},
+								"sink": {
+									"name": "accounting_acc_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['accounting_bal_due_days']"
+								},
+								"sink": {
+									"name": "accounting_bal_due_days",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['accounting_cust_id']"
+								},
+								"sink": {
+									"name": "accounting_cust_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['accounting_vendor_id']"
+								},
+								"sink": {
+									"name": "accounting_vendor_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['address_1']"
+								},
+								"sink": {
+									"name": "address_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['address_2']"
+								},
+								"sink": {
+									"name": "address_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['alternate_id']"
+								},
+								"sink": {
+									"name": "alternate_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['anzsic_code']"
+								},
+								"sink": {
+									"name": "anzsic_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['approval_contact']"
+								},
+								"sink": {
+									"name": "approval_contact",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['approval_email']"
+								},
+								"sink": {
+									"name": "approval_email",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['approval_phone']"
+								},
+								"sink": {
+									"name": "approval_phone",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['apt_no']"
+								},
+								"sink": {
+									"name": "apt_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['AttachmentCategories']"
+								},
+								"sink": {
+									"name": "AttachmentCategories",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['AutoStopCreditOff']"
+								},
+								"sink": {
+									"name": "AutoStopCreditOff",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['AutoStopCreditOn']"
+								},
+								"sink": {
+									"name": "AutoStopCreditOn",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['bank_acct_no']"
+								},
+								"sink": {
+									"name": "bank_acct_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['bank_name']"
+								},
+								"sink": {
+									"name": "bank_name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['bill_cycle']"
+								},
+								"sink": {
+									"name": "bill_cycle",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['bill_to_swt']"
+								},
+								"sink": {
+									"name": "bill_to_swt",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['book_alt_ref1']"
+								},
+								"sink": {
+									"name": "book_alt_ref1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['book_alt_ref2']"
+								},
+								"sink": {
+									"name": "book_alt_ref2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['branch']"
+								},
+								"sink": {
+									"name": "branch",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['BusinessType']"
+								},
+								"sink": {
+									"name": "BusinessType",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cash_account']"
+								},
+								"sink": {
+									"name": "cash_account",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cash_cardname']"
+								},
+								"sink": {
+									"name": "cash_cardname",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cash_expiry']"
+								},
+								"sink": {
+									"name": "cash_expiry",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cash_method']"
+								},
+								"sink": {
+									"name": "cash_method",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['city']"
+								},
+								"sink": {
+									"name": "city",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['classification_1']"
+								},
+								"sink": {
+									"name": "classification_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['classification_2']"
+								},
+								"sink": {
+									"name": "classification_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['classification_3']"
+								},
+								"sink": {
+									"name": "classification_3",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['classification_4']"
+								},
+								"sink": {
+									"name": "classification_4",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['classification_5']"
+								},
+								"sink": {
+									"name": "classification_5",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['classification_6']"
+								},
+								"sink": {
+									"name": "classification_6",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['classification_7']"
+								},
+								"sink": {
+									"name": "classification_7",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['classification_8']"
+								},
+								"sink": {
+									"name": "classification_8",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['classification_9']"
+								},
+								"sink": {
+									"name": "classification_9",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['classification_10']"
+								},
+								"sink": {
+									"name": "classification_10",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['contribution_entitlement']"
+								},
+								"sink": {
+									"name": "contribution_entitlement",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['contribution_entitlement_total']"
+								},
+								"sink": {
+									"name": "contribution_entitlement_total",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['coord_date']"
+								},
+								"sink": {
+									"name": "coord_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['coord_time']"
+								},
+								"sink": {
+									"name": "coord_time",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['coord_type']"
+								},
+								"sink": {
+									"name": "coord_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['country_code']"
+								},
+								"sink": {
+									"name": "country_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['county']"
+								},
+								"sink": {
+									"name": "county",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['create_date']"
+								},
+								"sink": {
+									"name": "create_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['create_timestamp']"
+								},
+								"sink": {
+									"name": "create_timestamp",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['create_user_id']"
+								},
+								"sink": {
+									"name": "create_user_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['credit_contact']"
+								},
+								"sink": {
+									"name": "credit_contact",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['credit_email']"
+								},
+								"sink": {
+									"name": "credit_email",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['credit_limit']"
+								},
+								"sink": {
+									"name": "credit_limit",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['credit_limit_warn_amt']"
+								},
+								"sink": {
+									"name": "credit_limit_warn_amt",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['credit_phone']"
+								},
+								"sink": {
+									"name": "credit_phone",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['CTSName']"
+								},
+								"sink": {
+									"name": "CTSName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['CTSNumber']"
+								},
+								"sink": {
+									"name": "CTSNumber",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['currency_code']"
+								},
+								"sink": {
+									"name": "currency_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cust_class_1']"
+								},
+								"sink": {
+									"name": "cust_class_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cust_class_2']"
+								},
+								"sink": {
+									"name": "cust_class_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cust_class_3']"
+								},
+								"sink": {
+									"name": "cust_class_3",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cust_class_4']"
+								},
+								"sink": {
+									"name": "cust_class_4",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cust_class_5']"
+								},
+								"sink": {
+									"name": "cust_class_5",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cust_group']"
+								},
+								"sink": {
+									"name": "cust_group",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cust_number']"
+								},
+								"sink": {
+									"name": "cust_number",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['cust_seq_no']"
+								},
+								"sink": {
+									"name": "cust_seq_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['cust_type']"
+								},
+								"sink": {
+									"name": "cust_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['customer_class']"
+								},
+								"sink": {
+									"name": "customer_class",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cut_off_swt']"
+								},
+								"sink": {
+									"name": "cut_off_swt",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_closed_1']"
+								},
+								"sink": {
+									"name": "day_closed_1",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_closed_2']"
+								},
+								"sink": {
+									"name": "day_closed_2",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_closed_3']"
+								},
+								"sink": {
+									"name": "day_closed_3",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_closed_4']"
+								},
+								"sink": {
+									"name": "day_closed_4",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_closed_5']"
+								},
+								"sink": {
+									"name": "day_closed_5",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_closed_6']"
+								},
+								"sink": {
+									"name": "day_closed_6",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_closed_7']"
+								},
+								"sink": {
+									"name": "day_closed_7",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_not_after_1']"
+								},
+								"sink": {
+									"name": "day_not_after_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_not_after_2']"
+								},
+								"sink": {
+									"name": "day_not_after_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_not_after_3']"
+								},
+								"sink": {
+									"name": "day_not_after_3",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_not_after_4']"
+								},
+								"sink": {
+									"name": "day_not_after_4",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_not_after_5']"
+								},
+								"sink": {
+									"name": "day_not_after_5",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_not_after_6']"
+								},
+								"sink": {
+									"name": "day_not_after_6",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_not_after_7']"
+								},
+								"sink": {
+									"name": "day_not_after_7",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_not_before_1']"
+								},
+								"sink": {
+									"name": "day_not_before_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_not_before_2']"
+								},
+								"sink": {
+									"name": "day_not_before_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_not_before_3']"
+								},
+								"sink": {
+									"name": "day_not_before_3",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_not_before_4']"
+								},
+								"sink": {
+									"name": "day_not_before_4",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_not_before_5']"
+								},
+								"sink": {
+									"name": "day_not_before_5",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_not_before_6']"
+								},
+								"sink": {
+									"name": "day_not_before_6",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['day_not_before_7']"
+								},
+								"sink": {
+									"name": "day_not_before_7",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['default_tax_perc']"
+								},
+								"sink": {
+									"name": "default_tax_perc",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_site']"
+								},
+								"sink": {
+									"name": "disposal_site",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['docket_req']"
+								},
+								"sink": {
+									"name": "docket_req",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['drawer']"
+								},
+								"sink": {
+									"name": "drawer",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['duty_care_accepted']"
+								},
+								"sink": {
+									"name": "Duty_care_accepted",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['duty_care_from_date']"
+								},
+								"sink": {
+									"name": "duty_care_from_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['duty_care_to_date']"
+								},
+								"sink": {
+									"name": "duty_care_to_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['email_address']"
+								},
+								"sink": {
+									"name": "email_address",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['fax_no']"
+								},
+								"sink": {
+									"name": "fax_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['FilteredWithAttributes']"
+								},
+								"sink": {
+									"name": "FilteredWithAttributes",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['first_dd_date']"
+								},
+								"sink": {
+									"name": "first_dd_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['geocode_x']"
+								},
+								"sink": {
+									"name": "geocode_x",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['geocode_y']"
+								},
+								"sink": {
+									"name": "geocode_y",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['government_no']"
+								},
+								"sink": {
+									"name": "government_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['historical_date']"
+								},
+								"sink": {
+									"name": "historical_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['house_no']"
+								},
+								"sink": {
+									"name": "house_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['house_no_text']"
+								},
+								"sink": {
+									"name": "house_no_text",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['import_id']"
+								},
+								"sink": {
+									"name": "import_id",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['in_collection_area']"
+								},
+								"sink": {
+									"name": "in_collection_area",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['internal_account']"
+								},
+								"sink": {
+									"name": "internal_account",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['invoice_email']"
+								},
+								"sink": {
+									"name": "invoice_email",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['invoice_send_method']"
+								},
+								"sink": {
+									"name": "invoice_send_method",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['invoice_send_method_we']"
+								},
+								"sink": {
+									"name": "invoice_send_method_we",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['InvoiceStyle']"
+								},
+								"sink": {
+									"name": "InvoiceStyle",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['is_rcti']"
+								},
+								"sink": {
+									"name": "is_rcti",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['LastPaymentDate']"
+								},
+								"sink": {
+									"name": "LastPaymentDate",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['lot_no']"
+								},
+								"sink": {
+									"name": "lot_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['map_reference']"
+								},
+								"sink": {
+									"name": "map_reference",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['module']"
+								},
+								"sink": {
+									"name": "module",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['MultiSiteOneEmail']"
+								},
+								"sink": {
+									"name": "MultiSiteOneEmail",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['name']"
+								},
+								"sink": {
+									"name": "name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['NoService']"
+								},
+								"sink": {
+									"name": "NoService",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['par_billto_cust_number']"
+								},
+								"sink": {
+									"name": "par_billto_cust_number",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['parcel_key']"
+								},
+								"sink": {
+									"name": "parcel_key",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['phone']"
+								},
+								"sink": {
+									"name": "phone",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Phone2']"
+								},
+								"sink": {
+									"name": "Phone2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['po_no']"
+								},
+								"sink": {
+									"name": "po_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['POChain']"
+								},
+								"sink": {
+									"name": "POChain",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['possession_date']"
+								},
+								"sink": {
+									"name": "possession_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['postal_address_1']"
+								},
+								"sink": {
+									"name": "postal_address_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['postal_address_2']"
+								},
+								"sink": {
+									"name": "postal_address_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['postal_city']"
+								},
+								"sink": {
+									"name": "postal_city",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['postal_country_code']"
+								},
+								"sink": {
+									"name": "postal_country_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['postal_county']"
+								},
+								"sink": {
+									"name": "postal_county",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['postal_name']"
+								},
+								"sink": {
+									"name": "postal_name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['postal_property_name']"
+								},
+								"sink": {
+									"name": "postal_property_name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['postal_state']"
+								},
+								"sink": {
+									"name": "postal_state",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['postal_zip']"
+								},
+								"sink": {
+									"name": "postal_zip",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['property_name']"
+								},
+								"sink": {
+									"name": "property_name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['protected_from']"
+								},
+								"sink": {
+									"name": "protected_from",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['protected_to']"
+								},
+								"sink": {
+									"name": "protected_to",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['rate_account_number']"
+								},
+								"sink": {
+									"name": "rate_account_number",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['rcti_email']"
+								},
+								"sink": {
+									"name": "rcti_email",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['registration_date']"
+								},
+								"sink": {
+									"name": "registration_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['renter_owner_swt']"
+								},
+								"sink": {
+									"name": "renter_owner_swt",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['route_no']"
+								},
+								"sink": {
+									"name": "route_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['rp_master']"
+								},
+								"sink": {
+									"name": "rp_master",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['rp_number']"
+								},
+								"sink": {
+									"name": "rp_number",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['sales_id']"
+								},
+								"sink": {
+									"name": "sales_id",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['sales_territory']"
+								},
+								"sink": {
+									"name": "sales_territory",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['SecondaryZones']"
+								},
+								"sink": {
+									"name": "SecondaryZones",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['SendDocketsWithInvoice']"
+								},
+								"sink": {
+									"name": "SendDocketsWithInvoice",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_contact']"
+								},
+								"sink": {
+									"name": "serv_contact",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['SignatureMandatoryOnMDT']"
+								},
+								"sink": {
+									"name": "SignatureMandatoryOnMDT",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['stat']"
+								},
+								"sink": {
+									"name": "stat",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['state']"
+								},
+								"sink": {
+									"name": "state",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['statement_email']"
+								},
+								"sink": {
+									"name": "statement_email",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['street_code']"
+								},
+								"sink": {
+									"name": "street_code",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['street_section']"
+								},
+								"sink": {
+									"name": "street_section",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['temp_susp_ed']"
+								},
+								"sink": {
+									"name": "temp_susp_ed",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['temp_susp_sd']"
+								},
+								"sink": {
+									"name": "temp_susp_sd",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['terms_code']"
+								},
+								"sink": {
+									"name": "terms_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['town_code']"
+								},
+								"sink": {
+									"name": "town_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['trade_name']"
+								},
+								"sink": {
+									"name": "trade_name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['update_timestamp']"
+								},
+								"sink": {
+									"name": "update_timestamp",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['update_user_id']"
+								},
+								"sink": {
+									"name": "update_user_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['UpdateProgram']"
+								},
+								"sink": {
+									"name": "UpdateProgram",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['UsePOChain']"
+								},
+								"sink": {
+									"name": "UsePOChain",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['waste_precinct']"
+								},
+								"sink": {
+									"name": "waste_precinct",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['zip']"
+								},
+								"sink": {
+									"name": "zip",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['zone_code']"
+								},
+								"sink": {
+									"name": "zone_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['Instance']"
+								},
+								"sink": {
+									"name": "Instance",
+									"type": "String"
+								}
+							}
+						],
+						"collectionReference": "$['result']",
+						"mapComplexValuesToString": false
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@pipeline().parameters.pStartDate",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "customer",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "customer",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wsgvic",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DBTable",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "customer_wsgvic",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"pStartDate": {
+				"type": "string"
+			},
+			"pEndDate": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"StartDate": {
+				"type": "String"
+			},
+			"EndDate": {
+				"type": "String"
+			},
+			"Debug": {
+				"type": "String"
+			},
+			"id": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "customer"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-02-29T22:48:57Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

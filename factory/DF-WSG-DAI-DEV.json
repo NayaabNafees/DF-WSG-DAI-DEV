@@ -1,0 +1,26 @@
+{
+	"name": "DF-WSG-DAI-DEV",
+	"properties": {
+		"globalParameters": {
+			"gparmSystemTimezone": {
+				"type": "string",
+				"value": "AUS Eastern Standard Time"
+			}
+		},
+		"globalConfigurations": {
+			"PipelineBillingEnabled": "true"
+		}
+	},
+	"location": "australiasoutheast",
+	"identity": {
+		"type": "SystemAssigned,UserAssigned",
+		"principalId": "93391b6e-6fa8-4e38-bb52-cc462e15f7ec",
+		"tenantId": "94610827-c444-4e92-85e4-fd94ff467eee",
+		"userAssignedIdentities": {
+			"/subscriptions/5b3ec6fc-8a2e-445b-9899-02846ac57b46/resourcegroups/RG-WSG-DAI-DEV/providers/Microsoft.ManagedIdentity/userAssignedIdentities/UA-WSG-DEV": {
+				"clientId": "0f495eda-9def-4e05-86b8-7bf259eee90a",
+				"principalId": "f091037b-45c1-4137-84d9-afd4e3417c10"
+			}
+		}
+	}
+}

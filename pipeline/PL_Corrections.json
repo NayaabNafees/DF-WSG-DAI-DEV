@@ -1,0 +1,221 @@
+{
+	"name": "PL_Corrections",
+	"properties": {
+		"activities": [
+			{
+				"name": "For Each Instance",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@variables('Instance')",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Copy Corrections to DB",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "ExcelSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": true,
+									"tableOption": "autoCreate",
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "Instance",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Instance",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "BookingID",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "BookingID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Customer No",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "CustomerNo",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Container",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Container",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Waste Type",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Waste_Type",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Qty",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Qty",
+												"type": "Int32",
+												"physicalType": "int"
+											}
+										},
+										{
+											"source": {
+												"name": "Vol",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Vol",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 2,
+												"precision": 18
+											}
+										},
+										{
+											"source": {
+												"name": "Weight",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Weight",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 2,
+												"precision": 18
+											}
+										},
+										{
+											"source": {
+												"name": "Unit of Measure",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "UOM",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Reference_Data",
+									"type": "DatasetReference",
+									"parameters": {
+										"ContainerName": {
+											"value": "referencedata",
+											"type": "Expression"
+										},
+										"DatasetName": {
+											"value": "Corrections",
+											"type": "Expression"
+										},
+										"Instance": {
+											"value": "@item()",
+											"type": "Expression"
+										},
+										"SheetName": {
+											"value": "Corrections",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DBTable",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": {
+											"value": "@concat('Corrections_',item())",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"Instance": {
+				"type": "Array",
+				"defaultValue": [
+					"wflex"
+				]
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-02-29T22:48:57Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

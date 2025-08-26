@@ -1,0 +1,30 @@
+{
+	"name": "RestAPI_Date",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "RestAPI",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"pStartDate": {
+				"type": "string"
+			},
+			"pEndDate": {
+				"type": "string"
+			},
+			"API_Instance": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "@concat(dataset().API_Instance,'?$query=update_timestamp>=','''',dataset().pStartDate,'''','and update_timestamp<=','''',dataset().pEndDate,'''')",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,24 @@
+{
+	"name": "RestResource_WastedgeAPI_WFLEX",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "RestService_Wastedge_WFLEX",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"restRelativeUrl": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "@dataset().restRelativeUrl",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

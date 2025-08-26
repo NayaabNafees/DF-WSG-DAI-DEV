@@ -1,0 +1,273 @@
+{
+	"name": "PL_Invoice_period",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy route to DataLake",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"paginationRules": {
+							"supportRFC5988": "true"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "RestAPI",
+						"type": "DatasetReference",
+						"parameters": {
+							"Dataset": {
+								"value": "invoicing/invoice_period",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@formatDateTime(utcNow(),'yyyy-MM-dd')",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "invoicing",
+								"type": "Expression"
+							},
+							"DatasetName": "invoice_period",
+							"Instance": "vic"
+						}
+					}
+				]
+			},
+			{
+				"name": "Copy to DB",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copy route to DataLake",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": true,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "['ar_balances_1']"
+								},
+								"sink": {
+									"name": "ar_balances_1",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['ar_balances_2']"
+								},
+								"sink": {
+									"name": "ar_balances_2",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['ar_balances_3']"
+								},
+								"sink": {
+									"name": "ar_balances_3",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['ar_balances_4']"
+								},
+								"sink": {
+									"name": "ar_balances_4",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['ar_balances_5']"
+								},
+								"sink": {
+									"name": "ar_balances_5",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['current_period']"
+								},
+								"sink": {
+									"name": "current_period",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['import_id']"
+								},
+								"sink": {
+									"name": "import_id",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['org']"
+								},
+								"sink": {
+									"name": "org",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['os_code']"
+								},
+								"sink": {
+									"name": "os_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['period_end_date']"
+								},
+								"sink": {
+									"name": "period_end_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['period_no']"
+								},
+								"sink": {
+									"name": "period_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['total_revenue']"
+								},
+								"sink": {
+									"name": "total_revenue",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['year_no']"
+								},
+								"sink": {
+									"name": "year_no",
+									"type": "Int32"
+								}
+							}
+						],
+						"collectionReference": "$['result']"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@formatDateTime(utcnow(),'yyyy-MM-dd')",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "invoicing",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "invoice_period",
+								"type": "Expression"
+							},
+							"Instance": "vic"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DBTable",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "invoice_period",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Invoice"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-02-29T22:48:57Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

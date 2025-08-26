@@ -1,0 +1,24 @@
+{
+	"name": "WSGNSW",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "WSGNSW",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"Dataset": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "@dataset().Dataset",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

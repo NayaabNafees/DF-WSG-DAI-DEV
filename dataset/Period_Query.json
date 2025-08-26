@@ -1,0 +1,30 @@
+{
+	"name": "Period_Query",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "WFLEX",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"Period": {
+				"type": "string"
+			},
+			"API_Instance": {
+				"type": "string"
+			},
+			"P_year": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "@concat(dataset().API_Instance,'?$query=period=','''',dataset().Period,'''','and p_year =','''',dataset().P_year,'''')",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

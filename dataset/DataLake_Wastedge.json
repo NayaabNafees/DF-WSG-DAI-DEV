@@ -1,0 +1,41 @@
+{
+	"name": "DataLake_Wastedge",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureDataLakeStorage1",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"pFileSystem": {
+				"type": "string"
+			},
+			"pDirectory": {
+				"type": "string"
+			},
+			"pFileName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@dataset().pFileName",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().pDirectory",
+					"type": "Expression"
+				},
+				"fileSystem": {
+					"value": "@dataset().pFileSystem",
+					"type": "Expression"
+				}
+			}
+		},
+		"schema": {}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

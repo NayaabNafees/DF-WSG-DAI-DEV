@@ -1,0 +1,24 @@
+{
+	"name": "RestResource_WastedgeAPI_WSGNSW",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "RestService_Wastedge_WSGNSW",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"restRelativeUrl": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "@dataset().restRelativeUrl",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

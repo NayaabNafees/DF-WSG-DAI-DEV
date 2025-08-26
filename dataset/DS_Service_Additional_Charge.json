@@ -1,0 +1,19 @@
+{
+	"name": "DS_Service_Additional_Charge",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "RestAPI",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "customer/service_additional_charge?$query=price_line_no=0",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

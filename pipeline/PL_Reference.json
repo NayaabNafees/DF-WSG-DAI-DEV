@@ -1,0 +1,443 @@
+{
+	"name": "PL_Reference",
+	"properties": {
+		"activities": [
+			{
+				"name": "For Each Instance",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@variables('Instance')",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Copy WasteType to DB",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Copy Runs to DB",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "ExcelSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"preCopyScript": {
+										"value": "delete from @{concat('Ref_WasteType_',item())}",
+										"type": "Expression"
+									},
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": true,
+									"tableOption": "autoCreate",
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "System",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "System",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "WasteType",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "WasteType",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "WasteTypeDesc",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "WasteTypeDesc",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "WasteGrp",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "WasteGrp",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "WasteGrpDesc",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "WasteGrpDesc",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "WasteOutcome",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "WasteOutcome",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Kg/m3",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Estkgm3",
+												"type": "Int32",
+												"physicalType": "int"
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Reference_Data",
+									"type": "DatasetReference",
+									"parameters": {
+										"ContainerName": {
+											"value": "referencedata",
+											"type": "Expression"
+										},
+										"DatasetName": {
+											"value": "WasteType",
+											"type": "Expression"
+										},
+										"Instance": {
+											"value": "@item()",
+											"type": "Expression"
+										},
+										"SheetName": {
+											"value": "tblWasteTypes",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DBTable",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": {
+											"value": "@concat('Ref_WasteType_',item())",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Copy ServType to DB",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Copy WasteType to DB",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "ExcelSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": true,
+									"tableOption": "autoCreate",
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Reference_Data",
+									"type": "DatasetReference",
+									"parameters": {
+										"ContainerName": {
+											"value": "referencedata",
+											"type": "Expression"
+										},
+										"DatasetName": {
+											"value": "ServTypes",
+											"type": "Expression"
+										},
+										"Instance": {
+											"value": "@item()",
+											"type": "Expression"
+										},
+										"SheetName": {
+											"value": "tblServTypes",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DBTable",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": {
+											"value": "@concat('Ref_ServTypes_',item())",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Copy Containers to DB",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Copy ServType to DB",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "ExcelSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": true,
+									"tableOption": "autoCreate",
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Reference_Data",
+									"type": "DatasetReference",
+									"parameters": {
+										"ContainerName": {
+											"value": "referencedata",
+											"type": "Expression"
+										},
+										"DatasetName": {
+											"value": "Containers",
+											"type": "Expression"
+										},
+										"Instance": {
+											"value": "@item()",
+											"type": "Expression"
+										},
+										"SheetName": {
+											"value": "tblContainers",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DBTable",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": {
+											"value": "@concat('Ref_Containers_',item())",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Copy Runs to DB",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "ExcelSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": true,
+									"tableOption": "autoCreate",
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Reference_Data",
+									"type": "DatasetReference",
+									"parameters": {
+										"ContainerName": {
+											"value": "referencedata",
+											"type": "Expression"
+										},
+										"DatasetName": {
+											"value": "Runs",
+											"type": "Expression"
+										},
+										"Instance": {
+											"value": "@item()",
+											"type": "Expression"
+										},
+										"SheetName": {
+											"value": "tblRuns",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DBTable",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": {
+											"value": "@concat('Ref_Runs_',item())",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"Instance": {
+				"type": "Array",
+				"defaultValue": [
+					"wflex"
+				]
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-02-29T22:48:57Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

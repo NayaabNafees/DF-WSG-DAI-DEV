@@ -1,0 +1,44 @@
+{
+	"name": "DataLake",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureDataLakeStorage1",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"EffectiveDate": {
+				"type": "string"
+			},
+			"ContainerName": {
+				"type": "string"
+			},
+			"DatasetName": {
+				"type": "string"
+			},
+			"Instance": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@concat(dataset().DataSetName,'-',dataset().EffectiveDate)",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@concat(dataset().DataSetName,'-',dataset().Instance)",
+					"type": "Expression"
+				},
+				"fileSystem": {
+					"value": "@dataset().ContainerName",
+					"type": "Expression"
+				}
+			}
+		},
+		"schema": {}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,457 @@
+{
+	"name": "PL_service_additional_charge",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy route to DataLake",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"paginationRules": {
+							"supportRFC5988": "true"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Service_Additional_Charge",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@formatDateTime(utcNow(),'yyyy-MM-dd')",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "serviceaddcharge",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "service_additional_charge",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wsgvic",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Copy to DB",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copy route to DataLake",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "delete from service_additional_charge_wsgvic",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": true,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "['$id']"
+								},
+								"sink": {
+									"name": "id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['ChargeType']"
+								},
+								"sink": {
+									"name": "ChargeType",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Condense']"
+								},
+								"sink": {
+									"name": "Condense",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['cust_number']"
+								},
+								"sink": {
+									"name": "cust_number",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['DateFrom']"
+								},
+								"sink": {
+									"name": "DateFrom",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['DateTo']"
+								},
+								"sink": {
+									"name": "DateTo",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['DefaultQty']"
+								},
+								"sink": {
+									"name": "DefaultQty",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['Description']"
+								},
+								"sink": {
+									"name": "Description",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['displayOrder']"
+								},
+								"sink": {
+									"name": "displayOrder",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['import_id']"
+								},
+								"sink": {
+									"name": "import_id",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['import_id_old']"
+								},
+								"sink": {
+									"name": "import_id_old",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['ledger_account']"
+								},
+								"sink": {
+									"name": "ledger_account",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['line_no']"
+								},
+								"sink": {
+									"name": "line_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['Linked_Charge_Condense']"
+								},
+								"sink": {
+									"name": "Linked_Charge_Condense",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['Linked_Charge_Default_Quantity']"
+								},
+								"sink": {
+									"name": "Linked_Charge_Default_Quantity",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Linked_Charge_Description']"
+								},
+								"sink": {
+									"name": "Linked_Charge_Description",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Linked_Charge_Name']"
+								},
+								"sink": {
+									"name": "Linked_Charge_Name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Linked_Charge_Price']"
+								},
+								"sink": {
+									"name": "Linked_Charge_Price",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['Linked_Charge_Price_Type']"
+								},
+								"sink": {
+									"name": "Linked_Charge_Price_Type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Linked_Charge_Rate']"
+								},
+								"sink": {
+									"name": "Linked_Charge_Rate",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['Linked_Charge_Tax']"
+								},
+								"sink": {
+									"name": "Linked_Charge_Tax",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['Linked_Charge_UOM']"
+								},
+								"sink": {
+									"name": "Linked_Charge_UOM",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Name']"
+								},
+								"sink": {
+									"name": "Name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Price']"
+								},
+								"sink": {
+									"name": "Price",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['Price_code']"
+								},
+								"sink": {
+									"name": "Price_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['price_line_no']"
+								},
+								"sink": {
+									"name": "price_line_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['price_type']"
+								},
+								"sink": {
+									"name": "price_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Rate']"
+								},
+								"sink": {
+									"name": "Rate",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['Table_name']"
+								},
+								"sink": {
+									"name": "Table_name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Tax']"
+								},
+								"sink": {
+									"name": "Tax",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['UOM']"
+								},
+								"sink": {
+									"name": "UOM",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['UpdateProgram']"
+								},
+								"sink": {
+									"name": "UpdateProgram",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['UpdateUserID']"
+								},
+								"sink": {
+									"name": "UpdateUserID",
+									"type": "String"
+								}
+							}
+						],
+						"collectionReference": "$['result']"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@formatDateTime(utcnow(),'yyyy-MM-dd')",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "serviceaddcharge",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "service_additional_charge",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wsgvic",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DBTable",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "service_additional_charge_wsgvic",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "customer"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-02-29T22:48:57Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

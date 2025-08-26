@@ -1,0 +1,565 @@
+{
+	"name": "PL_SaraTest_CopyInvoiceLedger",
+	"properties": {
+		"description": "Sara's test pipeline to download Invoice Ledger data from Wastedge API",
+		"activities": [
+			{
+				"name": "ForEach Invoice Period",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.queryInvoiceMonthOffset",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Download InvoicePeriodCharge",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Set API Query Year",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"paginationRules": {
+										"supportRFC5988": "true",
+										"QueryParameters.$start": "$.next_result",
+										"EndCondition:$.has_more": "Const:false"
+									}
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "RestResource_WastedgeAPI_WSGVIC",
+									"type": "DatasetReference",
+									"parameters": {
+										"restRelativeUrl": {
+											"value": "@concat(variables('varApiInstance'),'?$query=p_year=','''', variables('varApiQueryYear'),'''',' and period=','''', variables('varApiQueryPeriod'), '''')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DataLake",
+									"type": "DatasetReference",
+									"parameters": {
+										"EffectiveDate": {
+											"value": "@concat('year-', variables('varApiQueryYear'), '-period-', variables('varApiQueryPeriod'))",
+											"type": "Expression"
+										},
+										"ContainerName": {
+											"value": "@split(variables('varApiInstance'), '/')[0]",
+											"type": "Expression"
+										},
+										"DatasetName": {
+											"value": "@split(variables('varApiInstance'), '/')[1]",
+											"type": "Expression"
+										},
+										"Instance": {
+											"value": "@pipeline().parameters.Instance",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Set Invoice Month",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varInvoiceMonth",
+								"value": {
+									"value": "@addToTime(pipeline().TriggerTime, item(), 'Month')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set API Query Period",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set Invoice Month",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varApiQueryPeriod",
+								"value": {
+									"value": "@formatDateTime(addToTime(variables('varInvoiceMonth'), -6, 'Month'), '%M')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Load InvoicePeriodCharge Data to DB",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Download InvoicePeriodCharge",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "JsonSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": false,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "JsonReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "upsert",
+									"upsertSettings": {
+										"useTempDB": true,
+										"keys": [
+											"p_year",
+											"period"
+										]
+									},
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"path": "['branch']"
+											},
+											"sink": {
+												"name": "branch",
+												"type": "Int32"
+											}
+										},
+										{
+											"source": {
+												"path": "['Chargeable']"
+											},
+											"sink": {
+												"name": "Chargeable",
+												"type": "Boolean"
+											}
+										},
+										{
+											"source": {
+												"path": "['cust_number']"
+											},
+											"sink": {
+												"name": "cust_number",
+												"type": "Decimal"
+											}
+										},
+										{
+											"source": {
+												"path": "['department']"
+											},
+											"sink": {
+												"name": "department",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['Desc_L1']"
+											},
+											"sink": {
+												"name": "Desc_L1",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['displayOrder']"
+											},
+											"sink": {
+												"name": "displayOrder",
+												"type": "Int32"
+											}
+										},
+										{
+											"source": {
+												"path": "['import_id']"
+											},
+											"sink": {
+												"name": "import_id",
+												"type": "Int32"
+											}
+										},
+										{
+											"source": {
+												"path": "['invoice_no']"
+											},
+											"sink": {
+												"name": "invoice_no",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['ItemChargeType']"
+											},
+											"sink": {
+												"name": "ItemChargeType",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['jrl_no']"
+											},
+											"sink": {
+												"name": "jrl_no",
+												"type": "Int32"
+											}
+										},
+										{
+											"source": {
+												"path": "['ledger_account']"
+											},
+											"sink": {
+												"name": "ledger_account",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['line_no']"
+											},
+											"sink": {
+												"name": "line_no",
+												"type": "Int32"
+											}
+										},
+										{
+											"source": {
+												"path": "['p_year']"
+											},
+											"sink": {
+												"name": "p_year",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['p_year_period_jrl_no']"
+											},
+											"sink": {
+												"name": "p_year_period_jrl_no",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['Paid']"
+											},
+											"sink": {
+												"name": "Paid",
+												"type": "Boolean"
+											}
+										},
+										{
+											"source": {
+												"path": "['period']"
+											},
+											"sink": {
+												"name": "period",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['PeriodTax']"
+											},
+											"sink": {
+												"name": "PeriodTax",
+												"type": "Decimal"
+											}
+										},
+										{
+											"source": {
+												"path": "['PeriodTaxPercent']"
+											},
+											"sink": {
+												"name": "PeriodTaxPercent",
+												"type": "Decimal"
+											}
+										},
+										{
+											"source": {
+												"path": "['PeriodTotal']"
+											},
+											"sink": {
+												"name": "PeriodTotal",
+												"type": "Decimal"
+											}
+										},
+										{
+											"source": {
+												"path": "['PO']"
+											},
+											"sink": {
+												"name": "PO",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['Price']"
+											},
+											"sink": {
+												"name": "Price",
+												"type": "Decimal"
+											}
+										},
+										{
+											"source": {
+												"path": "['price_line_no']"
+											},
+											"sink": {
+												"name": "price_line_no",
+												"type": "Int32"
+											}
+										},
+										{
+											"source": {
+												"path": "['profitCentre']"
+											},
+											"sink": {
+												"name": "profitCentre",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['Qty']"
+											},
+											"sink": {
+												"name": "Qty",
+												"type": "Decimal"
+											}
+										},
+										{
+											"source": {
+												"path": "['Rate']"
+											},
+											"sink": {
+												"name": "Rate",
+												"type": "Decimal"
+											}
+										},
+										{
+											"source": {
+												"path": "['SiteHeaderText']"
+											},
+											"sink": {
+												"name": "SiteHeaderText",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['ZeroCharge']"
+											},
+											"sink": {
+												"name": "ZeroCharge",
+												"type": "Boolean"
+											}
+										}
+									],
+									"collectionReference": "$['result']",
+									"mapComplexValuesToString": false
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "DataLake",
+									"type": "DatasetReference",
+									"parameters": {
+										"EffectiveDate": {
+											"value": "@concat('year-', variables('varApiQueryYear'), '-period-', variables('varApiQueryPeriod'))",
+											"type": "Expression"
+										},
+										"ContainerName": {
+											"value": "@split(variables('varApiInstance'), '/')[0]",
+											"type": "Expression"
+										},
+										"DatasetName": {
+											"value": "@split(variables('varApiInstance'), '/')[1]",
+											"type": "Expression"
+										},
+										"Instance": {
+											"value": "@pipeline().parameters.Instance",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "AzureSqlTable1",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": {
+											"value": "@concat(split(variables('varApiInstance'), '/')[1], '_', pipeline().parameters.Instance)",
+											"type": "Expression"
+										},
+										"SchemaName": "sarahe"
+									}
+								}
+							]
+						},
+						{
+							"name": "Set API Query Year",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set API Query Period",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varApiQueryYear",
+								"value": {
+									"value": "@formatDateTime(\n\taddToTime(\n\t\tvariables('varInvoiceMonth')\n\t\t, if(\n\t\t\t\tlessOrEquals(\n\t\t\t\t\tint(variables('varApiQueryPeriod')), 6)\n\t\t\t\t, 1, 0\n\t\t\t)\n\t\t, 'year', 'yyyy-MM-dd')\n, 'yyyy')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set Debug Msg",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set API Query Year",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "debugMsg",
+								"value": {
+									"value": "@concat(variables('varApiInstance'),'?$query=period=','''', variables('varApiQueryPeriod'),'''','and p_year =','''', variables('varApiQueryYear'), '''')\n",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"queryInvoiceMonthOffset": {
+				"type": "array",
+				"defaultValue": [
+					-2,
+					-1
+				]
+			},
+			"Instance": {
+				"type": "string",
+				"defaultValue": "wsgvic"
+			}
+		},
+		"variables": {
+			"varApiQueryPeriod": {
+				"type": "String"
+			},
+			"varInvoiceMonth": {
+				"type": "String"
+			},
+			"varApiInstance": {
+				"type": "String",
+				"defaultValue": "invoicing/invoice_period_charge"
+			},
+			"varApiQueryYear": {
+				"type": "String"
+			},
+			"debugMsg": {
+				"type": "String"
+			},
+			"varInvoiceMonthOffset": {
+				"type": "Integer"
+			}
+		},
+		"folder": {
+			"name": "SaraHe"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-03-01T04:03:13Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

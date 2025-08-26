@@ -1,0 +1,618 @@
+{
+	"name": "PL_Vehicle",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy route to DataLake",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"paginationRules": {
+							"supportRFC5988": "true"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "RestAPI",
+						"type": "DatasetReference",
+						"parameters": {
+							"Dataset": {
+								"value": "vehicle/vehicle",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@formatDateTime(utcNow(),'yyyy-MM-dd')",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "vehicle",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "vehicle",
+								"type": "Expression"
+							},
+							"Instance": "vic"
+						}
+					}
+				]
+			},
+			{
+				"name": "Copy to DB",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copy route to DataLake",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": true,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "['authoristation_no']"
+								},
+								"sink": {
+									"name": "authoristation_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['branch']"
+								},
+								"sink": {
+									"name": "branch",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['CallSign']"
+								},
+								"sink": {
+									"name": "CallSign",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cert_waste_type']"
+								},
+								"sink": {
+									"name": "cert_waste_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['class']"
+								},
+								"sink": {
+									"name": "class",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['container_type']"
+								},
+								"sink": {
+									"name": "container_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['current_hour_meter']"
+								},
+								"sink": {
+									"name": "current_hour_meter",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['current_odometer']"
+								},
+								"sink": {
+									"name": "current_odometer",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['current_reading_date']"
+								},
+								"sink": {
+									"name": "current_reading_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['cust_number']"
+								},
+								"sink": {
+									"name": "cust_number",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['customer_truck']"
+								},
+								"sink": {
+									"name": "customer_truck",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['Disabled']"
+								},
+								"sink": {
+									"name": "Disabled",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['import_id']"
+								},
+								"sink": {
+									"name": "import_id",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['last_pm_code']"
+								},
+								"sink": {
+									"name": "last_pm_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['last_pm_date']"
+								},
+								"sink": {
+									"name": "last_pm_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['last_pm_hour_meter']"
+								},
+								"sink": {
+									"name": "last_pm_hour_meter",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['last_pm_odometer']"
+								},
+								"sink": {
+									"name": "last_pm_odometer",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['last_pm_order_no']"
+								},
+								"sink": {
+									"name": "last_pm_order_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['last_waste_type']"
+								},
+								"sink": {
+									"name": "last_waste_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['ledger_account']"
+								},
+								"sink": {
+									"name": "ledger_account",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['ledger_account_RI']"
+								},
+								"sink": {
+									"name": "ledger_account_RI",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['MaximumWeight']"
+								},
+								"sink": {
+									"name": "MaximumWeight",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['MDTserial']"
+								},
+								"sink": {
+									"name": "MDTserial",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['min_tonnage']"
+								},
+								"sink": {
+									"name": "min_tonnage",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['plate_no']"
+								},
+								"sink": {
+									"name": "plate_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['registered_gross_mass']"
+								},
+								"sink": {
+									"name": "registered_gross_mass",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_average']"
+								},
+								"sink": {
+									"name": "tare_average",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_date_1']"
+								},
+								"sink": {
+									"name": "tare_date_1",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_date_2']"
+								},
+								"sink": {
+									"name": "tare_date_2",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_date_3']"
+								},
+								"sink": {
+									"name": "tare_date_3",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_date_4']"
+								},
+								"sink": {
+									"name": "tare_date_4",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_date_5']"
+								},
+								"sink": {
+									"name": "tare_date_5",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_date_6']"
+								},
+								"sink": {
+									"name": "tare_date_6",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_date_7']"
+								},
+								"sink": {
+									"name": "tare_date_7",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_date_8']"
+								},
+								"sink": {
+									"name": "tare_date_8",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_date_9']"
+								},
+								"sink": {
+									"name": "tare_date_9",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_date_10']"
+								},
+								"sink": {
+									"name": "tare_date_10",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_expiry']"
+								},
+								"sink": {
+									"name": "tare_expiry",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_wgt_1']"
+								},
+								"sink": {
+									"name": "tare_wgt_1",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_wgt_2']"
+								},
+								"sink": {
+									"name": "tare_wgt_2",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_wgt_3']"
+								},
+								"sink": {
+									"name": "tare_wgt_3",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_wgt_4']"
+								},
+								"sink": {
+									"name": "tare_wgt_4",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_wgt_5']"
+								},
+								"sink": {
+									"name": "tare_wgt_5",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_wgt_6']"
+								},
+								"sink": {
+									"name": "tare_wgt_6",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_wgt_7']"
+								},
+								"sink": {
+									"name": "tare_wgt_7",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_wgt_8']"
+								},
+								"sink": {
+									"name": "tare_wgt_8",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_wgt_9']"
+								},
+								"sink": {
+									"name": "tare_wgt_9",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tare_wgt_10']"
+								},
+								"sink": {
+									"name": "tare_wgt_10",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['truck_no']"
+								},
+								"sink": {
+									"name": "truck_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['valid_from_date']"
+								},
+								"sink": {
+									"name": "valid_from_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['valid_to_date']"
+								},
+								"sink": {
+									"name": "valid_to_date",
+									"type": "DateTime"
+								}
+							}
+						],
+						"collectionReference": "$['result']"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@formatDateTime(utcnow(),'yyyy-MM-dd')",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "vehicle",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "vehicle",
+								"type": "Expression"
+							},
+							"Instance": "vic"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DBTable",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "vehicle",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Vehicle"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-02-29T22:48:57Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

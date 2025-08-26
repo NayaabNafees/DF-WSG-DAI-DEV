@@ -1,0 +1,576 @@
+{
+	"name": "PL_service_custom_price",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy route to DataLake",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set StartDate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set End Date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set Debug",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"paginationRules": {
+							"supportRFC5988": "true",
+							"EndCondition:$.has_more": "Const:false",
+							"QueryParameters.$start": "$.next_result"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "WSGNSW_Date",
+						"type": "DatasetReference",
+						"parameters": {
+							"API_Instance": {
+								"value": "customer/service_custom_price",
+								"type": "Expression"
+							},
+							"pStartDate": {
+								"value": "@pipeline().parameters.pStartDate",
+								"type": "Expression"
+							},
+							"pEndDate": {
+								"value": "@pipeline().parameters.pEndDate",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@pipeline().parameters.pStartDate",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "servicecustomprice",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "service_custom_price",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wsgnsw",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Service Custom Price to DB",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copy route to DataLake",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"id"
+							]
+						},
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "['$id']"
+								},
+								"sink": {
+									"name": "id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['bill_cycle']"
+								},
+								"sink": {
+									"name": "bill_cycle",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Code']"
+								},
+								"sink": {
+									"name": "Code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['create_timestamp']"
+								},
+								"sink": {
+									"name": "create_timestamp",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['CreateUserID']"
+								},
+								"sink": {
+									"name": "CreateUserID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cust_number']"
+								},
+								"sink": {
+									"name": "cust_number",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['Department']"
+								},
+								"sink": {
+									"name": "Department",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Description']"
+								},
+								"sink": {
+									"name": "Description",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['import_id']"
+								},
+								"sink": {
+									"name": "import_id",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['last_bill_date']"
+								},
+								"sink": {
+									"name": "last_bill_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['LastInvoiceDate']"
+								},
+								"sink": {
+									"name": "LastInvoiceDate",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['ledger_account']"
+								},
+								"sink": {
+									"name": "ledger_account",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Line_no']"
+								},
+								"sink": {
+									"name": "Line_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['MaxContainers']"
+								},
+								"sink": {
+									"name": "MaxContainers",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['MinContainers']"
+								},
+								"sink": {
+									"name": "MinContainers",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['next_bill_date']"
+								},
+								"sink": {
+									"name": "next_bill_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['NextInvoiceDate']"
+								},
+								"sink": {
+									"name": "NextInvoiceDate",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['org']"
+								},
+								"sink": {
+									"name": "org",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['Price']"
+								},
+								"sink": {
+									"name": "Price",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['price_type']"
+								},
+								"sink": {
+									"name": "price_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['PricePer']"
+								},
+								"sink": {
+									"name": "PricePer",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['PriceSource']"
+								},
+								"sink": {
+									"name": "PriceSource",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['ProfitCentre']"
+								},
+								"sink": {
+									"name": "ProfitCentre",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['service_line_no']"
+								},
+								"sink": {
+									"name": "service_line_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['Tax']"
+								},
+								"sink": {
+									"name": "Tax",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['update_timestamp']"
+								},
+								"sink": {
+									"name": "update_timestamp",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['UpdateProgram']"
+								},
+								"sink": {
+									"name": "UpdateProgram",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['UpdateUserID']"
+								},
+								"sink": {
+									"name": "UpdateUserID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['useCustomPrice']"
+								},
+								"sink": {
+									"name": "useCustomPrice",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['we_c_pricline_cust_F6CHAR']"
+								},
+								"sink": {
+									"name": "we_c_pricline_cust_F6CHAR",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['we_c_pricline_cust_F6DATE']"
+								},
+								"sink": {
+									"name": "we_c_pricline_cust_F6DATE",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['we_c_pricline_cust_F6INT']"
+								},
+								"sink": {
+									"name": "we_c_pricline_cust_F6INT",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['we_c_pricline_cust_F6LOG']"
+								},
+								"sink": {
+									"name": "we_c_pricline_cust_F6LOG",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['we_c_pricline_cust_F8DEC']"
+								},
+								"sink": {
+									"name": "we_c_pricline_cust_F8DEC",
+									"type": "Decimal"
+								}
+							}
+						],
+						"collectionReference": "$['result']"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@pipeline().parameters.pStartDate",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "servicecustomprice",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "service_custom_price",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wsgnsw",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DBTable",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "service_custom_price_wsgnsw",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Set StartDate",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "StartDate",
+					"value": {
+						"value": "@formatDateTime(pipeline().parameters.pStartDate,'yyyy-MM-dd')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set End Date",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "EndDate",
+					"value": {
+						"value": "@formatDateTime(adddays(pipeline().parameters.pEndDate,2),'YYYY-MM-dd')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set Debug",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Debug",
+					"value": {
+						"value": "@concat('customer/service_custom_price$query=update_timestamp>=','''',pipeline().parameters.pStartDate,'''','and update_timestamp<=','',pipeline().parameters.pEndDate,'')",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"pStartDate": {
+				"type": "string"
+			},
+			"pEndDate": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"StartDate": {
+				"type": "String"
+			},
+			"EndDate": {
+				"type": "String"
+			},
+			"Debug": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "customer"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-02-29T22:48:57Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

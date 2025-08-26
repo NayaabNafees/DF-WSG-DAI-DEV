@@ -1,0 +1,1246 @@
+{
+	"name": "PL_service",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy route to DataLake",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set StartDate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set End Date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set Debug",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"paginationRules": {
+							"supportRFC5988": "true",
+							"EndCondition:$.has_more": "Const:false",
+							"QueryParameters.$start": "$.next_result"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "RestAPI_Date",
+						"type": "DatasetReference",
+						"parameters": {
+							"pStartDate": {
+								"value": "@pipeline().parameters.pStartDate",
+								"type": "Expression"
+							},
+							"pEndDate": {
+								"value": "@pipeline().parameters.pEndDate",
+								"type": "Expression"
+							},
+							"API_Instance": {
+								"value": "customer/service",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@pipeline().parameters.pStartDate",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "service",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "service",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wsgvic",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Copy to DB",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copy route to DataLake",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": true,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"enableSkipIncompatibleRow": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "['$id']"
+								},
+								"sink": {
+									"name": "id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['alt_ref_serv_1']"
+								},
+								"sink": {
+									"name": "alt_ref_serv_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['alt_ref_serv_2']"
+								},
+								"sink": {
+									"name": "alt_ref_serv_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['application_id']"
+								},
+								"sink": {
+									"name": "application_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['ApplyMinimumBookingPriceTo']"
+								},
+								"sink": {
+									"name": "ApplyMinimumBookingPriceTo",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['bill_cycle']"
+								},
+								"sink": {
+									"name": "bill_cycle",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['BillingQtySwitch']"
+								},
+								"sink": {
+									"name": "BillingQtySwitch",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['budget_lifts']"
+								},
+								"sink": {
+									"name": "budget_lifts",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['cancel_serv_date']"
+								},
+								"sink": {
+									"name": "cancel_serv_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['chargeable']"
+								},
+								"sink": {
+									"name": "chargeable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['container_type']"
+								},
+								"sink": {
+									"name": "container_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['containers']"
+								},
+								"sink": {
+									"name": "containers",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['contract_desc_1']"
+								},
+								"sink": {
+									"name": "contract_desc_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['contract_desc_2']"
+								},
+								"sink": {
+									"name": "contract_desc_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['contract_desc_3']"
+								},
+								"sink": {
+									"name": "contract_desc_3",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['contract_desc_4']"
+								},
+								"sink": {
+									"name": "contract_desc_4",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['contract_end_date']"
+								},
+								"sink": {
+									"name": "contract_end_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['contract_no']"
+								},
+								"sink": {
+									"name": "contract_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['contract_str_date']"
+								},
+								"sink": {
+									"name": "contract_str_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['contractor_no']"
+								},
+								"sink": {
+									"name": "contractor_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['create_timestamp']"
+								},
+								"sink": {
+									"name": "create_timestamp",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['create_user_id']"
+								},
+								"sink": {
+									"name": "create_user_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['currency_code']"
+								},
+								"sink": {
+									"name": "currency_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['customer']"
+								},
+								"sink": {
+									"name": "customer",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['destruction_certificate_required']"
+								},
+								"sink": {
+									"name": "destruction_certificate_required",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_desc']"
+								},
+								"sink": {
+									"name": "disposal_charge_desc",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_desc2']"
+								},
+								"sink": {
+									"name": "disposal_charge_desc2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_desc3']"
+								},
+								"sink": {
+									"name": "disposal_charge_desc3",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_desc_ex']"
+								},
+								"sink": {
+									"name": "disposal_charge_desc_ex",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_rate']"
+								},
+								"sink": {
+									"name": "disposal_charge_rate",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_rate2']"
+								},
+								"sink": {
+									"name": "disposal_charge_rate2",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_rate3']"
+								},
+								"sink": {
+									"name": "disposal_charge_rate3",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_rate_ex']"
+								},
+								"sink": {
+									"name": "disposal_charge_rate_ex",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_rate_ex2']"
+								},
+								"sink": {
+									"name": "disposal_charge_rate_ex2",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_rate_ex3']"
+								},
+								"sink": {
+									"name": "disposal_charge_rate_ex3",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_type']"
+								},
+								"sink": {
+									"name": "disposal_charge_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_type2']"
+								},
+								"sink": {
+									"name": "disposal_charge_type2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_type3']"
+								},
+								"sink": {
+									"name": "disposal_charge_type3",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_type_ex']"
+								},
+								"sink": {
+									"name": "disposal_charge_type_ex",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_type_ex2']"
+								},
+								"sink": {
+									"name": "disposal_charge_type_ex2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_type_ex3']"
+								},
+								"sink": {
+									"name": "disposal_charge_type_ex3",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_default_weight']"
+								},
+								"sink": {
+									"name": "disposal_default_weight",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_default_weight_max']"
+								},
+								"sink": {
+									"name": "disposal_default_weight_max",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_default_weight_min']"
+								},
+								"sink": {
+									"name": "disposal_default_weight_min",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_incl_charge']"
+								},
+								"sink": {
+									"name": "disposal_incl_charge",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['Disposal_Levy1Desc']"
+								},
+								"sink": {
+									"name": "Disposal_Levy1Desc",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Disposal_Levy1Rate']"
+								},
+								"sink": {
+									"name": "Disposal_Levy1Rate",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['Disposal_Levy1Type']"
+								},
+								"sink": {
+									"name": "Disposal_Levy1Type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_site']"
+								},
+								"sink": {
+									"name": "disposal_site",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_unit_meas']"
+								},
+								"sink": {
+									"name": "disposal_unit_meas",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_weight_limit_ex']"
+								},
+								"sink": {
+									"name": "disposal_weight_limit_ex",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_weight_limit_ex2']"
+								},
+								"sink": {
+									"name": "disposal_weight_limit_ex2",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_weight_limit_ex3']"
+								},
+								"sink": {
+									"name": "disposal_weight_limit_ex3",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['Disposal_weight_min']"
+								},
+								"sink": {
+									"name": "Disposal_weight_min",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['facility_code']"
+								},
+								"sink": {
+									"name": "facility_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['facility_number']"
+								},
+								"sink": {
+									"name": "facility_number",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['float_next_date']"
+								},
+								"sink": {
+									"name": "float_next_date",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['frequency']"
+								},
+								"sink": {
+									"name": "frequency",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['import_id']"
+								},
+								"sink": {
+									"name": "import_id",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['indemnification_on_file']"
+								},
+								"sink": {
+									"name": "indemnification_on_file",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['initial_serv_date']"
+								},
+								"sink": {
+									"name": "initial_serv_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['InvoiceDescription']"
+								},
+								"sink": {
+									"name": "InvoiceDescription",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['last_bill_date']"
+								},
+								"sink": {
+									"name": "last_bill_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['line_no']"
+								},
+								"sink": {
+									"name": "line_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['line_notes_1']"
+								},
+								"sink": {
+									"name": "line_notes_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['line_notes_2']"
+								},
+								"sink": {
+									"name": "line_notes_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['line_notes_3']"
+								},
+								"sink": {
+									"name": "line_notes_3",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['line_notes_4']"
+								},
+								"sink": {
+									"name": "line_notes_4",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['next_bill_date']"
+								},
+								"sink": {
+									"name": "next_bill_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['next_care_cert_due']"
+								},
+								"sink": {
+									"name": "next_care_cert_due",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['org']"
+								},
+								"sink": {
+									"name": "org",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['owned_flag']"
+								},
+								"sink": {
+									"name": "owned_flag",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['ParentService']"
+								},
+								"sink": {
+									"name": "ParentService",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['pickup_days']"
+								},
+								"sink": {
+									"name": "pickup_days",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['po_no']"
+								},
+								"sink": {
+									"name": "po_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['POChain']"
+								},
+								"sink": {
+									"name": "POChain",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['pref_serv_time']"
+								},
+								"sink": {
+									"name": "pref_serv_time",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['price_increase_exempt_date']"
+								},
+								"sink": {
+									"name": "price_increase_exempt_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['rate_exempt']"
+								},
+								"sink": {
+									"name": "rate_exempt",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['rent_days']"
+								},
+								"sink": {
+									"name": "rent_days",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['rent_free_days']"
+								},
+								"sink": {
+									"name": "rent_free_days",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['repeating_loads']"
+								},
+								"sink": {
+									"name": "repeating_loads",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['route']"
+								},
+								"sink": {
+									"name": "route",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['route_collection']"
+								},
+								"sink": {
+									"name": "route_collection",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['route_cycle']"
+								},
+								"sink": {
+									"name": "route_cycle",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['route_directions_1']"
+								},
+								"sink": {
+									"name": "route_directions_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['route_directions_2']"
+								},
+								"sink": {
+									"name": "route_directions_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['route_directions_3']"
+								},
+								"sink": {
+									"name": "route_directions_3",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['route_directions_4']"
+								},
+								"sink": {
+									"name": "route_directions_4",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['sales_id_1']"
+								},
+								"sink": {
+									"name": "sales_id_1",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['sch_end_time']"
+								},
+								"sink": {
+									"name": "sch_end_time",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['sch_start_time']"
+								},
+								"sink": {
+									"name": "sch_start_time",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['SendTipFeeAttachments']"
+								},
+								"sink": {
+									"name": "SendTipFeeAttachments",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_code']"
+								},
+								"sink": {
+									"name": "serv_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_type']"
+								},
+								"sink": {
+									"name": "serv_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['SharedService']"
+								},
+								"sink": {
+									"name": "SharedService",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['site_location_ref_no']"
+								},
+								"sink": {
+									"name": "site_location_ref_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['subcontractor_line_no']"
+								},
+								"sink": {
+									"name": "subcontractor_line_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['temp_code']"
+								},
+								"sink": {
+									"name": "temp_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['ticket_required']"
+								},
+								"sink": {
+									"name": "ticket_required",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['Time_at_site']"
+								},
+								"sink": {
+									"name": "Time_at_site",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['update_timestamp']"
+								},
+								"sink": {
+									"name": "update_timestamp",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['update_user_id']"
+								},
+								"sink": {
+									"name": "update_user_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['UpdateProgram']"
+								},
+								"sink": {
+									"name": "UpdateProgram",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['UseForAllSites']"
+								},
+								"sink": {
+									"name": "UseForAllSites",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['UsePOChain']"
+								},
+								"sink": {
+									"name": "UsePOChain",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['waste_type']"
+								},
+								"sink": {
+									"name": "waste_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['we_price_code']"
+								},
+								"sink": {
+									"name": "we_price_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['WeightLimitSwitch']"
+								},
+								"sink": {
+									"name": "WeightLimitSwitch",
+									"type": "String"
+								}
+							}
+						],
+						"collectionReference": "$['result']"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@pipeline().parameters.pStartDate",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "service",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "service",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wsgvic",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DBTable",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "service_wsgvic",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Set StartDate",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "StartDate",
+					"value": {
+						"value": "@formatDateTime(pipeline().parameters.pStartDate,'yyyy-MM-dd')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set End Date",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "EndDate",
+					"value": {
+						"value": "@formatDateTime(adddays(pipeline().parameters.pEndDate,2),'YYYY-MM-dd')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set Debug",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Debug",
+					"value": {
+						"value": "@concat('customer/service$query=update_timestamp>=','''',pipeline().parameters.pStartDate,'''','and update_timestamp<=','',pipeline().parameters.pEndDate,'')",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"pStartDate": {
+				"type": "string"
+			},
+			"pEndDate": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"StartDate": {
+				"type": "String"
+			},
+			"EndDate": {
+				"type": "String"
+			},
+			"Debug": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "customer"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-02-29T22:48:57Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

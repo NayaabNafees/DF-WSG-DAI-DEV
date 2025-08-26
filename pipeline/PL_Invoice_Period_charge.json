@@ -1,0 +1,921 @@
+{
+	"name": "PL_Invoice_Period_charge",
+	"properties": {
+		"activities": [
+			{
+				"name": "For Each API",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@variables('API_Instance')",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Set period",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Period",
+								"value": {
+									"value": "@pipeline().parameters.Period",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set Debug",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "DEBUG",
+								"value": {
+									"value": "@concat(item(),'$query=period=','''',pipeline().parameters.Period,'''','and p_year=','''',pipeline().parameters.P_year,'''')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Copy route to DataLake",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Set period",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set Debug",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"paginationRules": {
+										"supportRFC5988": "true",
+										"EndCondition:$.has_more": "Const:false",
+										"QueryParameters.$start": "$.next_result"
+									}
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "Period_Query",
+									"type": "DatasetReference",
+									"parameters": {
+										"Period": {
+											"value": "@pipeline().parameters.Period",
+											"type": "Expression"
+										},
+										"API_Instance": {
+											"value": "@split(item(),'.')[1]",
+											"type": "Expression"
+										},
+										"P_year": {
+											"value": "@pipeline().parameters.P_year",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DataLake",
+									"type": "DatasetReference",
+									"parameters": {
+										"EffectiveDate": {
+											"value": "@concat('period-',pipeline().parameters.Period,' Year-',pipeline().parameters.P_year)",
+											"type": "Expression"
+										},
+										"ContainerName": {
+											"value": "@split(item(),'.')[0]",
+											"type": "Expression"
+										},
+										"DatasetName": {
+											"value": "@split(item(),'/')[1]",
+											"type": "Expression"
+										},
+										"Instance": {
+											"value": "wflex",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "Invoice  Period to DB",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "For Each API",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"additionalColumns": [
+							{
+								"name": "Update Timestamp",
+								"value": {
+									"value": "@utcnow()",
+									"type": "Expression"
+								}
+							}
+						],
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": true,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"parallelCopies": 4,
+					"enableSkipIncompatibleRow": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "['branch']"
+								},
+								"sink": {
+									"name": "branch",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['Chargeable']"
+								},
+								"sink": {
+									"name": "Chargeable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['cust_number']"
+								},
+								"sink": {
+									"name": "cust_number",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['department']"
+								},
+								"sink": {
+									"name": "department",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Desc_L1']"
+								},
+								"sink": {
+									"name": "Desc_L1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['displayOrder']"
+								},
+								"sink": {
+									"name": "displayOrder",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['import_id']"
+								},
+								"sink": {
+									"name": "import_id",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['invoice_no']"
+								},
+								"sink": {
+									"name": "invoice_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['ItemChargeType']"
+								},
+								"sink": {
+									"name": "ItemChargeType",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['jrl_no']"
+								},
+								"sink": {
+									"name": "jrl_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['ledger_account']"
+								},
+								"sink": {
+									"name": "ledger_account",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['line_no']"
+								},
+								"sink": {
+									"name": "line_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['p_year']"
+								},
+								"sink": {
+									"name": "p_year",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['p_year_period_jrl_no']"
+								},
+								"sink": {
+									"name": "p_year_period_jrl_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Paid']"
+								},
+								"sink": {
+									"name": "Paid",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['period']"
+								},
+								"sink": {
+									"name": "period",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['PeriodTax']"
+								},
+								"sink": {
+									"name": "PeriodTax",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['PeriodTaxPercent']"
+								},
+								"sink": {
+									"name": "PeriodTaxPercent",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['PeriodTotal']"
+								},
+								"sink": {
+									"name": "PeriodTotal",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['PO']"
+								},
+								"sink": {
+									"name": "PO",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Price']"
+								},
+								"sink": {
+									"name": "Price",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['price_line_no']"
+								},
+								"sink": {
+									"name": "price_line_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['profitCentre']"
+								},
+								"sink": {
+									"name": "profitCentre",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Qty']"
+								},
+								"sink": {
+									"name": "Qty",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['Rate']"
+								},
+								"sink": {
+									"name": "Rate",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['SiteHeaderText']"
+								},
+								"sink": {
+									"name": "SiteHeaderText",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['ZeroCharge']"
+								},
+								"sink": {
+									"name": "ZeroCharge",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "$['Update Timestamp']"
+								},
+								"sink": {
+									"name": "update_timestamp",
+									"type": "DateTime"
+								}
+							}
+						],
+						"collectionReference": "$['result']"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@concat('period-',pipeline().parameters.Period,' Year-',pipeline().parameters.P_year)",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "invoiceperiodcharge",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "Invoice_period_charge",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wflex",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DBTable",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "invoice_period_charge_wflex",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Invoice Item Charge to DB",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Invoice  Period to DB",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": true,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"parallelCopies": 4,
+					"enableSkipIncompatibleRow": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "['$id']"
+								},
+								"sink": {
+									"name": "id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['AddChgTableName']"
+								},
+								"sink": {
+									"name": "AddChgTableName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['branch']"
+								},
+								"sink": {
+									"name": "branch",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['Chargeable']"
+								},
+								"sink": {
+									"name": "Chargeable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['container_type']"
+								},
+								"sink": {
+									"name": "container_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cust_number']"
+								},
+								"sink": {
+									"name": "cust_number",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['department']"
+								},
+								"sink": {
+									"name": "department",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Desc_L1']"
+								},
+								"sink": {
+									"name": "Desc_L1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['displayOrder']"
+								},
+								"sink": {
+									"name": "displayOrder",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['import_id']"
+								},
+								"sink": {
+									"name": "import_id",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['invoice_no']"
+								},
+								"sink": {
+									"name": "invoice_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['ItemChargeType']"
+								},
+								"sink": {
+									"name": "ItemChargeType",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['ItemTax']"
+								},
+								"sink": {
+									"name": "ItemTax",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['ItemTaxPercent']"
+								},
+								"sink": {
+									"name": "ItemTaxPercent",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['ItemTotal']"
+								},
+								"sink": {
+									"name": "ItemTotal",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['ItemType']"
+								},
+								"sink": {
+									"name": "ItemType",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['jrl_no']"
+								},
+								"sink": {
+									"name": "jrl_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['ledger_account']"
+								},
+								"sink": {
+									"name": "ledger_account",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['line_no']"
+								},
+								"sink": {
+									"name": "line_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['p_year']"
+								},
+								"sink": {
+									"name": "p_year",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['p_year_period_jrl_no']"
+								},
+								"sink": {
+									"name": "p_year_period_jrl_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Paid']"
+								},
+								"sink": {
+									"name": "Paid",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['period']"
+								},
+								"sink": {
+									"name": "period",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['PO']"
+								},
+								"sink": {
+									"name": "PO",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['price_type']"
+								},
+								"sink": {
+									"name": "price_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['profitCentre']"
+								},
+								"sink": {
+									"name": "profitCentre",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Qty']"
+								},
+								"sink": {
+									"name": "Qty",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['Rate']"
+								},
+								"sink": {
+									"name": "Rate",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['trans_date']"
+								},
+								"sink": {
+									"name": "trans_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['trans_no']"
+								},
+								"sink": {
+									"name": "trans_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['trans_no_trans_seq_no']"
+								},
+								"sink": {
+									"name": "trans_no_trans_seq_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['trans_seq_no']"
+								},
+								"sink": {
+									"name": "trans_seq_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['update_timestamp']"
+								},
+								"sink": {
+									"name": "update_timestamp",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['waste_type']"
+								},
+								"sink": {
+									"name": "waste_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['ZeroCharge']"
+								},
+								"sink": {
+									"name": "ZeroCharge",
+									"type": "Boolean"
+								}
+							}
+						],
+						"collectionReference": "$['result']"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@concat('period-',pipeline().parameters.Period,' Year-',pipeline().parameters.P_year)",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "invoiceitemcharge",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "Invoice_item_charge",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wflex",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DBTable",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "invoice_item_charge_wflex",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"Period": {
+				"type": "string"
+			},
+			"P_year": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"DEBUG": {
+				"type": "String"
+			},
+			"Period": {
+				"type": "String"
+			},
+			"API_Instance": {
+				"type": "Array",
+				"defaultValue": [
+					"invoiceitemcharge.Invoicing/Invoice_item_charge",
+					"invoiceperiodcharge.Invoicing/Invoice_period_charge"
+				]
+			}
+		},
+		"folder": {
+			"name": "Invoice"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-02-29T22:48:57Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

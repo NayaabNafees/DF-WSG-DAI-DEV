@@ -1,0 +1,1723 @@
+{
+	"name": "PL_SaraTest_CopyBooking",
+	"properties": {
+		"description": "Sara's test pipeline to download Booking and Tipping Fee data from Wastedge API",
+		"activities": [
+			{
+				"name": "Download Booking Data",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set End Date",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"paginationRules": {
+							"supportRFC5988": "true",
+							"QueryParameters.$start": "$.next_result",
+							"EndCondition:$.has_more": "Const:false"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "RestAPI_Date",
+						"type": "DatasetReference",
+						"parameters": {
+							"pStartDate": {
+								"value": "@variables('StartDate')",
+								"type": "Expression"
+							},
+							"pEndDate": {
+								"value": "@variables('EndDate')",
+								"type": "Expression"
+							},
+							"API_Instance": {
+								"value": "@variables('varApiInstance_Booking')",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@concat(variables('StartDate'), '_', variables('EndDate'))",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "@split(variables('varApiInstance_Booking'), '/')[0]",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "@split(variables('varApiInstance_Booking'), '/')[1]",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "@pipeline().parameters.Instance",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Set Start Date",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "StartDate",
+					"value": {
+						"value": "@formatDateTime(addDays(pipeline().TriggerTime, pipeline().parameters.queryDataDayOffset), 'yyyy-MM-dd')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set End Date",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set Start Date",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "EndDate",
+					"value": {
+						"value": "@formatDateTime(addDays(pipeline().TriggerTime, 1), 'yyyy-MM-dd')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Load Booking Data to DB",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Download Booking Data",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": false,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"trans_no",
+								"trans_seq_no"
+							]
+						},
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "['$id']"
+								},
+								"sink": {
+									"name": "id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['add_chg_changed']"
+								},
+								"sink": {
+									"name": "add_chg_changed",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['admin_status']"
+								},
+								"sink": {
+									"name": "admin_status",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['alt_ref_1']"
+								},
+								"sink": {
+									"name": "alt_ref_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['alt_ref_2']"
+								},
+								"sink": {
+									"name": "alt_ref_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['alt_ref_serv_1']"
+								},
+								"sink": {
+									"name": "alt_ref_serv_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['alt_ref_serv_2']"
+								},
+								"sink": {
+									"name": "alt_ref_serv_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['application_id']"
+								},
+								"sink": {
+									"name": "application_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['bill_address_1']"
+								},
+								"sink": {
+									"name": "bill_address_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['bill_address_2']"
+								},
+								"sink": {
+									"name": "bill_address_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['bill_city']"
+								},
+								"sink": {
+									"name": "bill_city",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['bill_name']"
+								},
+								"sink": {
+									"name": "bill_name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['bill_property_name']"
+								},
+								"sink": {
+									"name": "bill_property_name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['bill_state']"
+								},
+								"sink": {
+									"name": "bill_state",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['bill_to_swt']"
+								},
+								"sink": {
+									"name": "bill_to_swt",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['bill_zip']"
+								},
+								"sink": {
+									"name": "bill_zip",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['bin_attributes']"
+								},
+								"sink": {
+									"name": "bin_attributes",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['bins_collected']"
+								},
+								"sink": {
+									"name": "bins_collected",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['booking_custom_price']"
+								},
+								"sink": {
+									"name": "booking_custom_price",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['booking_id']"
+								},
+								"sink": {
+									"name": "booking_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['booking_update_flag']"
+								},
+								"sink": {
+									"name": "booking_update_flag",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['chargeable']"
+								},
+								"sink": {
+									"name": "chargeable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['cont_id']"
+								},
+								"sink": {
+									"name": "cont_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['container_id']"
+								},
+								"sink": {
+									"name": "container_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['container_size']"
+								},
+								"sink": {
+									"name": "container_size",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['container_type']"
+								},
+								"sink": {
+									"name": "container_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['container_weight']"
+								},
+								"sink": {
+									"name": "container_weight",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['containers']"
+								},
+								"sink": {
+									"name": "containers",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['coord_date']"
+								},
+								"sink": {
+									"name": "coord_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['coord_time']"
+								},
+								"sink": {
+									"name": "coord_time",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['coord_type']"
+								},
+								"sink": {
+									"name": "coord_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['create_timestamp']"
+								},
+								"sink": {
+									"name": "create_timestamp",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['create_user_id']"
+								},
+								"sink": {
+									"name": "create_user_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['currency_code']"
+								},
+								"sink": {
+									"name": "currency_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['cust_cust_ref']"
+								},
+								"sink": {
+									"name": "cust_cust_ref",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['customer']"
+								},
+								"sink": {
+									"name": "customer",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['customer_class']"
+								},
+								"sink": {
+									"name": "customer_class",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['customer_service_line_no']"
+								},
+								"sink": {
+									"name": "customer_service_line_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['default_weight']"
+								},
+								"sink": {
+									"name": "default_weight",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['delivery_serial_no']"
+								},
+								"sink": {
+									"name": "delivery_serial_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['delivery_site_number']"
+								},
+								"sink": {
+									"name": "delivery_site_number",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['delivery_site_type']"
+								},
+								"sink": {
+									"name": "delivery_site_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Department']"
+								},
+								"sink": {
+									"name": "Department",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['destruction_batch_no']"
+								},
+								"sink": {
+									"name": "destruction_batch_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['destruction_certificate_required']"
+								},
+								"sink": {
+									"name": "destruction_certificate_required",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_charge_type']"
+								},
+								"sink": {
+									"name": "disposal_charge_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_incl_charge']"
+								},
+								"sink": {
+									"name": "disposal_incl_charge",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['disposal_ticket']"
+								},
+								"sink": {
+									"name": "disposal_ticket",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['driver']"
+								},
+								"sink": {
+									"name": "driver",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['driver_comments']"
+								},
+								"sink": {
+									"name": "driver_comments",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['driver_docket_no']"
+								},
+								"sink": {
+									"name": "driver_docket_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['driver_seq_no']"
+								},
+								"sink": {
+									"name": "driver_seq_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['email_address']"
+								},
+								"sink": {
+									"name": "email_address",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Exported']"
+								},
+								"sink": {
+									"name": "Exported",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['geocode_x']"
+								},
+								"sink": {
+									"name": "geocode_x",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['geocode_y']"
+								},
+								"sink": {
+									"name": "geocode_y",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['GetLastestPrice']"
+								},
+								"sink": {
+									"name": "GetLastestPrice",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['HasAttachment']"
+								},
+								"sink": {
+									"name": "HasAttachment",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['import_id']"
+								},
+								"sink": {
+									"name": "import_id",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['invoice_no']"
+								},
+								"sink": {
+									"name": "invoice_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['InvoiceDescription']"
+								},
+								"sink": {
+									"name": "InvoiceDescription",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['job_end_time']"
+								},
+								"sink": {
+									"name": "job_end_time",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['job_hours']"
+								},
+								"sink": {
+									"name": "job_hours",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['job_serviced_date']"
+								},
+								"sink": {
+									"name": "job_serviced_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['job_start_time']"
+								},
+								"sink": {
+									"name": "job_start_time",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['jrl_no']"
+								},
+								"sink": {
+									"name": "jrl_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['ledger_account']"
+								},
+								"sink": {
+									"name": "ledger_account",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['linked_trans_no']"
+								},
+								"sink": {
+									"name": "linked_trans_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['linked_trans_seq_no']"
+								},
+								"sink": {
+									"name": "linked_trans_seq_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['map_reference']"
+								},
+								"sink": {
+									"name": "map_reference",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['mdt_cash_payment']"
+								},
+								"sink": {
+									"name": "mdt_cash_payment",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['meters_collected']"
+								},
+								"sink": {
+									"name": "meters_collected",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['multi_total_price']"
+								},
+								"sink": {
+									"name": "multi_total_price",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['multi_total_price_ex_tax']"
+								},
+								"sink": {
+									"name": "multi_total_price_ex_tax",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['multi_total_tax']"
+								},
+								"sink": {
+									"name": "multi_total_tax",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['OldServType']"
+								},
+								"sink": {
+									"name": "OldServType",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['open_flag']"
+								},
+								"sink": {
+									"name": "open_flag",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['order_no']"
+								},
+								"sink": {
+									"name": "order_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['org']"
+								},
+								"sink": {
+									"name": "org",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['p_year']"
+								},
+								"sink": {
+									"name": "p_year",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['paid']"
+								},
+								"sink": {
+									"name": "paid",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['period']"
+								},
+								"sink": {
+									"name": "period",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['phone_2']"
+								},
+								"sink": {
+									"name": "phone_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['PlannedEndTime']"
+								},
+								"sink": {
+									"name": "PlannedEndTime",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['PlannedStartTime']"
+								},
+								"sink": {
+									"name": "PlannedStartTime",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['po_no']"
+								},
+								"sink": {
+									"name": "po_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['prev_trans_status']"
+								},
+								"sink": {
+									"name": "prev_trans_status",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['price_line_no']"
+								},
+								"sink": {
+									"name": "price_line_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['price_rate']"
+								},
+								"sink": {
+									"name": "price_rate",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['Priority']"
+								},
+								"sink": {
+									"name": "Priority",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['ProfitCentre']"
+								},
+								"sink": {
+									"name": "ProfitCentre",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['prorated_tip_cost']"
+								},
+								"sink": {
+									"name": "prorated_tip_cost",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['rcti_batch']"
+								},
+								"sink": {
+									"name": "rcti_batch",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['rcti_no']"
+								},
+								"sink": {
+									"name": "rcti_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['reason_code']"
+								},
+								"sink": {
+									"name": "reason_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['removal_serial_no']"
+								},
+								"sink": {
+									"name": "removal_serial_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['removal_site_number']"
+								},
+								"sink": {
+									"name": "removal_site_number",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['removal_site_type']"
+								},
+								"sink": {
+									"name": "removal_site_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['route_directions_1']"
+								},
+								"sink": {
+									"name": "route_directions_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['route_directions_2']"
+								},
+								"sink": {
+									"name": "route_directions_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['route_directions_3']"
+								},
+								"sink": {
+									"name": "route_directions_3",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['route_directions_4']"
+								},
+								"sink": {
+									"name": "route_directions_4",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['route_no']"
+								},
+								"sink": {
+									"name": "route_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['run_gen_batch']"
+								},
+								"sink": {
+									"name": "run_gen_batch",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['SendTipFeeAttachments']"
+								},
+								"sink": {
+									"name": "SendTipFeeAttachments",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['sent_flag']"
+								},
+								"sink": {
+									"name": "sent_flag",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_addr_1']"
+								},
+								"sink": {
+									"name": "serv_addr_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_addr_2']"
+								},
+								"sink": {
+									"name": "serv_addr_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_city']"
+								},
+								"sink": {
+									"name": "serv_city",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_code']"
+								},
+								"sink": {
+									"name": "serv_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_contact']"
+								},
+								"sink": {
+									"name": "serv_contact",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_country']"
+								},
+								"sink": {
+									"name": "serv_country",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_desc_1']"
+								},
+								"sink": {
+									"name": "serv_desc_1",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_desc_2']"
+								},
+								"sink": {
+									"name": "serv_desc_2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_desc_3']"
+								},
+								"sink": {
+									"name": "serv_desc_3",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_desc_4']"
+								},
+								"sink": {
+									"name": "serv_desc_4",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_name']"
+								},
+								"sink": {
+									"name": "serv_name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_no']"
+								},
+								"sink": {
+									"name": "serv_no",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_phone']"
+								},
+								"sink": {
+									"name": "serv_phone",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_property_name']"
+								},
+								"sink": {
+									"name": "serv_property_name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_state']"
+								},
+								"sink": {
+									"name": "serv_state",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_time_code']"
+								},
+								"sink": {
+									"name": "serv_time_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_type']"
+								},
+								"sink": {
+									"name": "serv_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['serv_zip']"
+								},
+								"sink": {
+									"name": "serv_zip",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['service_line_no']"
+								},
+								"sink": {
+									"name": "service_line_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['service_version']"
+								},
+								"sink": {
+									"name": "service_version"
+								}
+							},
+							{
+								"source": {
+									"path": "['site_number']"
+								},
+								"sink": {
+									"name": "site_number",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['status']"
+								},
+								"sink": {
+									"name": "status",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['temp_code']"
+								},
+								"sink": {
+									"name": "temp_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['TempLedgerAccount']"
+								},
+								"sink": {
+									"name": "TempLedgerAccount",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['ticket_required']"
+								},
+								"sink": {
+									"name": "ticket_required",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_fee']"
+								},
+								"sink": {
+									"name": "tip_fee",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['total_price']"
+								},
+								"sink": {
+									"name": "total_price",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['total_price_ex_tax']"
+								},
+								"sink": {
+									"name": "total_price_ex_tax",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['trans_date']"
+								},
+								"sink": {
+									"name": "trans_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['trans_entry_date']"
+								},
+								"sink": {
+									"name": "trans_entry_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['trans_entry_id']"
+								},
+								"sink": {
+									"name": "trans_entry_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['trans_entry_time']"
+								},
+								"sink": {
+									"name": "trans_entry_time",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['trans_no']"
+								},
+								"sink": {
+									"name": "trans_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['trans_seq_no']"
+								},
+								"sink": {
+									"name": "trans_seq_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['trans_update_date']"
+								},
+								"sink": {
+									"name": "trans_update_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['trans_update_id']"
+								},
+								"sink": {
+									"name": "trans_update_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['trans_update_time']"
+								},
+								"sink": {
+									"name": "trans_update_time",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['truck_no']"
+								},
+								"sink": {
+									"name": "truck_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['update_timestamp']"
+								},
+								"sink": {
+									"name": "update_timestamp",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['update_user_id']"
+								},
+								"sink": {
+									"name": "update_user_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['updated']"
+								},
+								"sink": {
+									"name": "updated",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['UpdateProgram']"
+								},
+								"sink": {
+									"name": "UpdateProgram",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['usePriceCode']"
+								},
+								"sink": {
+									"name": "usePriceCode",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['user_id']"
+								},
+								"sink": {
+									"name": "user_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['vehicle_class']"
+								},
+								"sink": {
+									"name": "vehicle_class",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['waste_type']"
+								},
+								"sink": {
+									"name": "waste_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['WasteOutcome']"
+								},
+								"sink": {
+									"name": "WasteOutcome",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['we_equip_codes']"
+								},
+								"sink": {
+									"name": "we_equip_codes",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['we_helpers']"
+								},
+								"sink": {
+									"name": "we_helpers",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['we_price']"
+								},
+								"sink": {
+									"name": "we_price",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['we_price_code']"
+								},
+								"sink": {
+									"name": "we_price_code",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['we_price_discount_label']"
+								},
+								"sink": {
+									"name": "we_price_discount_label",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['we_tax']"
+								},
+								"sink": {
+									"name": "we_tax",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['zone_no']"
+								},
+								"sink": {
+									"name": "zone_no",
+									"type": "Int32"
+								}
+							}
+						],
+						"collectionReference": "$['result']",
+						"mapComplexValuesToString": false
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@concat(variables('StartDate'), '_', variables('EndDate'))",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "@split(variables('varApiInstance_Booking'), '/')[0]",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "@split(variables('varApiInstance_Booking'), '/')[1]",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "@pipeline().parameters.Instance",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "@concat(split(variables('varApiInstance_Booking'), '/')[1], '_', pipeline().parameters.Instance)",
+								"type": "Expression"
+							},
+							"SchemaName": "sarahe"
+						}
+					}
+				]
+			},
+			{
+				"name": "Script Check Things",
+				"type": "Script",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "select current_user as [currentUser]"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00",
+					"logSettings": {
+						"logDestination": "ActivityOutput"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"queryDataDayOffset": {
+				"type": "int",
+				"defaultValue": 0
+			},
+			"Instance": {
+				"type": "string",
+				"defaultValue": "wsgvic"
+			}
+		},
+		"variables": {
+			"StartDate": {
+				"type": "String"
+			},
+			"EndDate": {
+				"type": "String"
+			},
+			"varApiInstance_Booking": {
+				"type": "String",
+				"defaultValue": "booking/booking"
+			}
+		},
+		"folder": {
+			"name": "SaraHe"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-02-29T22:59:26Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

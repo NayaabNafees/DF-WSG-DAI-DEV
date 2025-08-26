@@ -1,0 +1,526 @@
+{
+	"name": "PL_scheduled_service",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy route to DataLake",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set StartDate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set End Date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set Debug",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"paginationRules": {
+							"supportRFC5988": "true",
+							"EndCondition:$.has_more": "Const:false",
+							"QueryParameters.$start": "$.next_result"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "RestAPI_Date",
+						"type": "DatasetReference",
+						"parameters": {
+							"pStartDate": {
+								"value": "@pipeline().parameters.pStartDate",
+								"type": "Expression"
+							},
+							"pEndDate": {
+								"value": "@pipeline().parameters.pEndDate",
+								"type": "Expression"
+							},
+							"API_Instance": {
+								"value": "customer/scheduled_service",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@pipeline().parameters.pStartDate",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "scheduledservice",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "scheduled_service",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wsgvic",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Copy to DB",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copy route to DataLake",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "delete from scheduled_service_wsgvic",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": true,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "['$id']"
+								},
+								"sink": {
+									"name": "id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Active']"
+								},
+								"sink": {
+									"name": "Active",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['cont_number']"
+								},
+								"sink": {
+									"name": "cont_number",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['create_timestamp']"
+								},
+								"sink": {
+									"name": "create_timestamp",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['create_user_id']"
+								},
+								"sink": {
+									"name": "create_user_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['customer']"
+								},
+								"sink": {
+									"name": "customer",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['display_order']"
+								},
+								"sink": {
+									"name": "display_order",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['EndDate']"
+								},
+								"sink": {
+									"name": "EndDate",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['ending_house']"
+								},
+								"sink": {
+									"name": "ending_house",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['expected_metres']"
+								},
+								"sink": {
+									"name": "expected_metres",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['first_service_date']"
+								},
+								"sink": {
+									"name": "first_service_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['import_id']"
+								},
+								"sink": {
+									"name": "import_id",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['last_mdt_seq']"
+								},
+								"sink": {
+									"name": "last_mdt_seq",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['line_no']"
+								},
+								"sink": {
+									"name": "line_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['line_type']"
+								},
+								"sink": {
+									"name": "line_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['navigation']"
+								},
+								"sink": {
+									"name": "navigation",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['next_service_date']"
+								},
+								"sink": {
+									"name": "next_service_date",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['route_line']"
+								},
+								"sink": {
+									"name": "route_line",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['route_msg']"
+								},
+								"sink": {
+									"name": "route_msg",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['route_no']"
+								},
+								"sink": {
+									"name": "route_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['schedule_no']"
+								},
+								"sink": {
+									"name": "schedule_no",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['section']"
+								},
+								"sink": {
+									"name": "section",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['segment_length']"
+								},
+								"sink": {
+									"name": "segment_length",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['shift_no']"
+								},
+								"sink": {
+									"name": "shift_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['StartDate']"
+								},
+								"sink": {
+									"name": "StartDate",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['street_code']"
+								},
+								"sink": {
+									"name": "street_code",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['update_timestamp']"
+								},
+								"sink": {
+									"name": "update_timestamp",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['update_user_id']"
+								},
+								"sink": {
+									"name": "update_user_id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['UpdateProgram']"
+								},
+								"sink": {
+									"name": "UpdateProgram",
+									"type": "String"
+								}
+							}
+						],
+						"collectionReference": "$['result']"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@pipeline().parameters.pStartDate",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "scheduledservice",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "scheduled_service",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wsgvic",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DBTable",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "scheduled_service_wsgvic",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Set StartDate",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "StartDate",
+					"value": {
+						"value": "@formatDateTime(pipeline().parameters.pStartDate,'yyyy-MM-dd')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set End Date",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "EndDate",
+					"value": {
+						"value": "@formatDateTime(adddays(pipeline().parameters.pEndDate,2),'YYYY-MM-dd')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set Debug",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Debug",
+					"value": {
+						"value": "@concat('customer/scheduled_service$query=update_timestamp>=','''',pipeline().parameters.pStartDate,'''','and update_timestamp<=','',pipeline().parameters.pEndDate,'')",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"pStartDate": {
+				"type": "string"
+			},
+			"pEndDate": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"StartDate": {
+				"type": "String"
+			},
+			"EndDate": {
+				"type": "String"
+			},
+			"Debug": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "customer"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-02-29T22:48:57Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

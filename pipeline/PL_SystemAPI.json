@@ -1,0 +1,425 @@
+{
+	"name": "PL_SystemAPI",
+	"properties": {
+		"activities": [
+			{
+				"name": "Vendor Disposal Rate to DB",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copy to DataLake WSG VIC_copy1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": true,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "['$id']"
+								},
+								"sink": {
+									"name": "id"
+								}
+							},
+							{
+								"source": {
+									"path": "['import_id']"
+								},
+								"sink": {
+									"name": "import_id",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "['ledger_account']"
+								},
+								"sink": {
+									"name": "ledger_account",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['ledger_account_RI']"
+								},
+								"sink": {
+									"name": "ledger_account_RI",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Levy1Desc']"
+								},
+								"sink": {
+									"name": "Levy1Desc",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['Levy1Rate']"
+								},
+								"sink": {
+									"name": "Levy1Rate",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['Levy1Type']"
+								},
+								"sink": {
+									"name": "Levy1Type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_rate']"
+								},
+								"sink": {
+									"name": "tip_rate",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_rate2']"
+								},
+								"sink": {
+									"name": "tip_rate2",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_rate3']"
+								},
+								"sink": {
+									"name": "tip_rate3",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_rate_charge']"
+								},
+								"sink": {
+									"name": "tip_rate_charge",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_rate_charge2']"
+								},
+								"sink": {
+									"name": "tip_rate_charge2",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_rate_charge3']"
+								},
+								"sink": {
+									"name": "tip_rate_charge3",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_rate_charge_ex']"
+								},
+								"sink": {
+									"name": "tip_rate_charge_ex",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_rate_desc']"
+								},
+								"sink": {
+									"name": "tip_rate_desc",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_rate_desc2']"
+								},
+								"sink": {
+									"name": "tip_rate_desc2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_rate_desc3']"
+								},
+								"sink": {
+									"name": "tip_rate_desc3",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_rate_type']"
+								},
+								"sink": {
+									"name": "tip_rate_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_rate_type2']"
+								},
+								"sink": {
+									"name": "tip_rate_type2",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_rate_type3']"
+								},
+								"sink": {
+									"name": "tip_rate_type3",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_rate_type_ex']"
+								},
+								"sink": {
+									"name": "tip_rate_type_ex",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['tip_rate_uom']"
+								},
+								"sink": {
+									"name": "tip_rate_uom",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['UpdateProgram']"
+								},
+								"sink": {
+									"name": "UpdateProgram",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['UpdateUserID']"
+								},
+								"sink": {
+									"name": "UpdateUserID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['vendor_no']"
+								},
+								"sink": {
+									"name": "vendor_no",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['waste_type']"
+								},
+								"sink": {
+									"name": "waste_type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['weight_limit_ex']"
+								},
+								"sink": {
+									"name": "weight_limit_ex",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['weight_limit_ex2']"
+								},
+								"sink": {
+									"name": "weight_limit_ex2",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"path": "['weight_limit_ex3']"
+								},
+								"sink": {
+									"name": "weight_limit_ex3",
+									"type": "Decimal"
+								}
+							}
+						],
+						"collectionReference": "$['result']",
+						"mapComplexValuesToString": false
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@formatDateTime(utcnow(),'yyyy-MM-dd')",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "system",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "vendor_disposal_rate",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wsgnsw",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DBTable",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "vendor_disposal_rate_wsgnsw",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Copy to DataLake WSG VIC_copy1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"paginationRules": {
+							"supportRFC5988": "true",
+							"EndCondition:$.has_more": "Const:false",
+							"QueryParameters.$start": "$.next_result"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "WSGNSW",
+						"type": "DatasetReference",
+						"parameters": {
+							"Dataset": {
+								"value": "system/vendor_disposal_rate?$query=tip_rate3 = 0",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DataLake",
+						"type": "DatasetReference",
+						"parameters": {
+							"EffectiveDate": {
+								"value": "@formatDateTime(utcnow(),'yyyy-MM-dd')",
+								"type": "Expression"
+							},
+							"ContainerName": {
+								"value": "system",
+								"type": "Expression"
+							},
+							"DatasetName": {
+								"value": "vendor_disposal_rate",
+								"type": "Expression"
+							},
+							"Instance": {
+								"value": "wsgnsw",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2024-02-29T22:48:57Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
