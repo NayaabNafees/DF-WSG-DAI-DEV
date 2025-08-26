@@ -1,11 +1,12 @@
 {
 	"name": "AzureDataLakeStorage1",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
 	"properties": {
 		"annotations": [],
 		"type": "AzureBlobFS",
 		"typeProperties": {
-			"url": "https://sawsgdaidev.dfs.core.windows.net/"
+			"url": "https://sawsgdaidev.dfs.core.windows.net/",
+			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQDQ4NjQ1NURGLUIzMkUtNDUyRi1CQUFELUZCMTE3QzlBNDZBMl82MTZhNDkwYi01Yzc0LTRmZWQtODQ0Ny01ODk0MTE1YzcwZDQiDQp9"
 		}
-	},
-	"type": "Microsoft.DataFactory/factories/linkedservices"
+	}
 }
