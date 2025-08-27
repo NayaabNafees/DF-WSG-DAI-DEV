@@ -1692,10 +1692,12 @@
 		],
 		"parameters": {
 			"pStartDate": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "2025-01-01"
 			},
 			"pEndDate": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "2025-01-03"
 			}
 		},
 		"variables": {
