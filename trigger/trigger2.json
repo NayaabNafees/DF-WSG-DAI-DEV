@@ -1,0 +1,36 @@
+{
+	"name": "trigger2",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PL_booking",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"pStartDate": "2025-01-01",
+					"pEndDate": "2025-01-03"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2025-08-27T07:07:00",
+				"timeZone": "AUS Eastern Standard Time",
+				"schedule": {
+					"minutes": [
+						10
+					],
+					"hours": [
+						17
+					]
+				}
+			}
+		}
+	}
+}
