@@ -2,7 +2,7 @@
 	"name": "DataLake",
 	"properties": {
 		"linkedServiceName": {
-			"referenceName": "AzureDataLakeStorage1",
+			"referenceName": "AzureBlobStorage_sawsgdaidev",
 			"type": "LinkedServiceReference"
 		},
 		"parameters": {
@@ -23,7 +23,7 @@
 		"type": "Json",
 		"typeProperties": {
 			"location": {
-				"type": "AzureBlobFSLocation",
+				"type": "AzureBlobStorageLocation",
 				"fileName": {
 					"value": "@concat(dataset().DataSetName,'-',dataset().EffectiveDate)",
 					"type": "Expression"
@@ -32,7 +32,7 @@
 					"value": "@concat(dataset().DatasetName,'-',dataset().Instance)",
 					"type": "Expression"
 				},
-				"fileSystem": {
+				"container": {
 					"value": "@dataset().ContainerName",
 					"type": "Expression"
 				}
