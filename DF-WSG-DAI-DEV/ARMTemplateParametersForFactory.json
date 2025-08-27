@@ -1,0 +1,120 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "DF-WSG-DAI-DEV"
+		},
+		"AzureSqlDatabase1_connectionString": {
+			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=sql-wsg-dai-dev.database.windows.net;Initial Catalog=SQLDB-WSG-DAI-DEV"
+		},
+		"Customer_password": {
+			"value": ""
+		},
+		"RestAPI_password": {
+			"value": ""
+		},
+		"RestAPI_Date_password": {
+			"value": ""
+		},
+		"RestService_Wastedge_WFLEX_password": {
+			"value": ""
+		},
+		"RestService_Wastedge_WSGNSW_password": {
+			"value": ""
+		},
+		"RestService_Wastedge_WSGVIC_password": {
+			"value": ""
+		},
+		"WFLEX_password": {
+			"value": ""
+		},
+		"WSGNSW_password": {
+			"value": ""
+		},
+		"WSGVIC_password": {
+			"value": ""
+		},
+		"gjrblob_connectionString": {
+			"value": ""
+		},
+		"sqltest_connectionString": {
+			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=sql-wsg-dai-dev.database.windows.net;Initial Catalog=SQLDB-WSG-DAI-DEV"
+		},
+		"AzureBlobStorage_sawsgdaidev_properties_typeProperties_serviceEndpoint": {
+			"value": "https://sawsgdaidev.blob.core.windows.net/"
+		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"value": "https://sawsgdaidev.dfs.core.windows.net/"
+		},
+		"Customer_properties_typeProperties_url": {
+			"value": "https://testwww6.wastedge.com/api/rest/customer"
+		},
+		"Customer_properties_typeProperties_userName": {
+			"value": "WSG\\API"
+		},
+		"RestAPI_properties_typeProperties_url": {
+			"value": "https://www6.wastedge.com/api/rest"
+		},
+		"RestAPI_properties_typeProperties_userName": {
+			"value": "WSG\\API"
+		},
+		"RestAPI_Date_properties_typeProperties_url": {
+			"value": "https://www6.wastedge.com/api/rest"
+		},
+		"RestAPI_Date_properties_typeProperties_userName": {
+			"value": "WSG\\API"
+		},
+		"RestService_Wastedge_WFLEX_properties_typeProperties_url": {
+			"value": "https://www6.wastedge.com/api/rest"
+		},
+		"RestService_Wastedge_WFLEX_properties_typeProperties_userName": {
+			"value": "WFLEX\\API"
+		},
+		"RestService_Wastedge_WSGNSW_properties_typeProperties_url": {
+			"value": "https://www6.wastedge.com/api/rest"
+		},
+		"RestService_Wastedge_WSGNSW_properties_typeProperties_userName": {
+			"value": "WSGNSW\\API"
+		},
+		"RestService_Wastedge_WSGVIC_properties_typeProperties_url": {
+			"value": "https://www6.wastedge.com/api/rest"
+		},
+		"RestService_Wastedge_WSGVIC_properties_typeProperties_userName": {
+			"value": "WSG\\API"
+		},
+		"WFLEX_properties_typeProperties_url": {
+			"value": "https://www6.wastedge.com/api/rest"
+		},
+		"WFLEX_properties_typeProperties_userName": {
+			"value": "WFLEX\\API"
+		},
+		"WSGNSW_properties_typeProperties_url": {
+			"value": "https://www6.wastedge.com/api/rest"
+		},
+		"WSGNSW_properties_typeProperties_userName": {
+			"value": "WSGNSW\\API"
+		},
+		"WSGVIC_properties_typeProperties_url": {
+			"value": "https://www6.wastedge.com/api/rest"
+		},
+		"WSGVIC_properties_typeProperties_userName": {
+			"value": "WSG\\API"
+		},
+		"trigger1_properties_typeProperties_scope": {
+			"value": "/subscriptions/5b3ec6fc-8a2e-445b-9899-02846ac57b46/resourceGroups/DEFAULT-EVENTGRID/providers/Microsoft.Storage/storageAccounts/stgwsgalert"
+		},
+		"AzureBlobStorage_sawsgdaidev_properties_privateLinkResourceId": {
+			"value": "/subscriptions/5b3ec6fc-8a2e-445b-9899-02846ac57b46/resourceGroups/RG-WSG-DAI-DEV/providers/Microsoft.Storage/storageAccounts/sawsgdaidev"
+		},
+		"AzureBlobStorage_sawsgdaidev_properties_groupId": {
+			"value": "blob"
+		},
+		"pe-sawsgdaidev_properties_privateLinkResourceId": {
+			"value": "/subscriptions/5b3ec6fc-8a2e-445b-9899-02846ac57b46/resourceGroups/RG-WSG-DAI-DEV/providers/Microsoft.Storage/storageAccounts/sawsgdaidev"
+		},
+		"pe-sawsgdaidev_properties_groupId": {
+			"value": "dfs"
+		}
+	}
+}

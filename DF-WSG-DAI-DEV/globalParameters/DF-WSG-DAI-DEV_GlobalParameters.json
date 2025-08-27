@@ -1,0 +1,6 @@
+{
+	"gparmSystemTimezone": {
+		"type": "string",
+		"value": "AUS Eastern Standard Time"
+	}
+}
