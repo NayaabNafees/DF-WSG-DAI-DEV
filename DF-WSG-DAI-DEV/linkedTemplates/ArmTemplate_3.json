@@ -6,6 +6,14 @@
 			"type": "string",
 			"metadata": "Data Factory name",
 			"defaultValue": "DF-WSG-DAI-DEV"
+		},
+		"trigger2_properties_PL_booking_parameters_pStartDate": {
+			"type": "string",
+			"defaultValue": "2025-01-01"
+		},
+		"trigger2_properties_PL_booking_parameters_pEndDate": {
+			"type": "string",
+			"defaultValue": "2025-01-03"
 		}
 	},
 	"variables": {
@@ -41088,6 +41096,47 @@
 				"lastPublishTime": "2024-02-29T22:48:57Z"
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/trigger2')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "PL_booking",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"pStartDate": "[parameters('trigger2_properties_PL_booking_parameters_pStartDate')]",
+							"pEndDate": "[parameters('trigger2_properties_PL_booking_parameters_pEndDate')]"
+						}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2025-08-27T07:07:00",
+						"timeZone": "AUS Eastern Standard Time",
+						"schedule": {
+							"minutes": [
+								10
+							],
+							"hours": [
+								17
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/PL_booking')]"
+			]
 		}
 	]
 }

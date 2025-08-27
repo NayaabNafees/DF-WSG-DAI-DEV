@@ -141,6 +141,14 @@
 			"type": "string",
 			"defaultValue": "/subscriptions/5b3ec6fc-8a2e-445b-9899-02846ac57b46/resourceGroups/DEFAULT-EVENTGRID/providers/Microsoft.Storage/storageAccounts/stgwsgalert"
 		},
+		"trigger2_properties_PL_booking_parameters_pStartDate": {
+			"type": "string",
+			"defaultValue": "2025-01-01"
+		},
+		"trigger2_properties_PL_booking_parameters_pEndDate": {
+			"type": "string",
+			"defaultValue": "2025-01-03"
+		},
 		"AzureBlobStorage_sawsgdaidev_properties_privateLinkResourceId": {
 			"type": "string",
 			"defaultValue": "/subscriptions/5b3ec6fc-8a2e-445b-9899-02846ac57b46/resourceGroups/RG-WSG-DAI-DEV/providers/Microsoft.Storage/storageAccounts/sawsgdaidev"
@@ -352,6 +360,12 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
+					},
+					"trigger2_properties_PL_booking_parameters_pStartDate": {
+						"value": "[parameters('trigger2_properties_PL_booking_parameters_pStartDate')]"
+					},
+					"trigger2_properties_PL_booking_parameters_pEndDate": {
+						"value": "[parameters('trigger2_properties_PL_booking_parameters_pEndDate')]"
 					}
 				}
 			},

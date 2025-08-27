@@ -104,6 +104,12 @@
 		"trigger1_properties_typeProperties_scope": {
 			"value": "/subscriptions/5b3ec6fc-8a2e-445b-9899-02846ac57b46/resourceGroups/DEFAULT-EVENTGRID/providers/Microsoft.Storage/storageAccounts/stgwsgalert"
 		},
+		"trigger2_properties_PL_booking_parameters_pStartDate": {
+			"value": "2025-01-01"
+		},
+		"trigger2_properties_PL_booking_parameters_pEndDate": {
+			"value": "2025-01-03"
+		},
 		"AzureBlobStorage_sawsgdaidev_properties_privateLinkResourceId": {
 			"value": "/subscriptions/5b3ec6fc-8a2e-445b-9899-02846ac57b46/resourceGroups/RG-WSG-DAI-DEV/providers/Microsoft.Storage/storageAccounts/sawsgdaidev"
 		},
