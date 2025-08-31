@@ -192,9 +192,6 @@
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
 					},
-					"AzureSqlDatabase1_connectionString": {
-						"value": "[parameters('AzureSqlDatabase1_connectionString')]"
-					},
 					"Customer_password": {
 						"value": "[parameters('Customer_password')]"
 					},
@@ -299,6 +296,9 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
+					},
+					"AzureSqlDatabase1_connectionString": {
+						"value": "[parameters('AzureSqlDatabase1_connectionString')]"
 					},
 					"AzureBlobStorage_sawsgdaidev_properties_privateLinkResourceId": {
 						"value": "[parameters('AzureBlobStorage_sawsgdaidev_properties_privateLinkResourceId')]"

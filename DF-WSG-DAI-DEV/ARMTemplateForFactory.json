@@ -59270,6 +59270,8 @@
 					{
 						"name": "Copy to DB",
 						"type": "Copy",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [
 							{
 								"activity": "Copy booking to DataLake",
@@ -65192,9 +65194,15 @@
 				"type": "AzureSqlDatabase",
 				"typeProperties": {
 					"connectionString": "[parameters('AzureSqlDatabase1_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "IR-WSG-DAI-DEV",
+					"type": "IntegrationRuntimeReference"
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/IR-WSG-DAI-DEV')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Customer')]",
