@@ -1,0 +1,7 @@
+{
+	"name": "pe_sql-wsg-dai-dev",
+	"properties": {
+		"privateLinkResourceId": "/subscriptions/5b3ec6fc-8a2e-445b-9899-02846ac57b46/resourceGroups/RG-WSG-DAI-DEV/providers/Microsoft.Sql/servers/sql-wsg-dai-dev",
+		"groupId": "sqlServer"
+	}
+}
